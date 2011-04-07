@@ -1,0 +1,224 @@
+//#!C
+/*
+% Part of MotorControl containing the parameters of the PD-controller
+% and regulation function, includes other functions/files
+%
+% Signature
+%   Author: Linus Atorf (see AUTHORS)
+%   Date: 2009/06/09
+%   Copyright: 2007-2009, RWTH Aachen University
+%
+%
+% ***********************************************************************************************
+% *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *
+% *                                                                                             *
+% *  The RWTH - Mindstorms NXT Toolbox is free software: you can redistribute it and/or modify  *
+% *  it under the terms of the GNU General Public License as published by the Free Software     *
+% *  Foundation, either version 3 of the License, or (at your option) any later version.        *
+% *                                                                                             *
+% *  The RWTH - Mindstorms NXT Toolbox is distributed in the hope that it will be useful,       *
+% *  but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS  *
+% *  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.             *
+% *                                                                                             *
+% *  You should have received a copy of the GNU General Public License along with the           *
+% *  RWTH - Mindstorms NXT Toolbox. If not, see <http://www.gnu.org/licenses/>.                 *
+% ***********************************************************************************************
+*/
+
+#ifndef __CONTROLLER_NXC__
+#define __CONTROLLER_NXC__
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+// * #INCLUDES ARE BELOW, to make sure params are set before!  *
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+
+// All defines marked with PARAM can be adjusted / tweaked, others NOT!
+
+
+
+// Driving "stages" or "phases" during controlled motor loop...
+#define STAGE_RAMPUP 1
+#define STAGE_DRIVING 2
+#define STAGE_BRAKING 3
+#define STAGE_ENDGAME 4
+
+
+// CONSTANT LOOP TIMING
+// with 4 full tasks, 15 or 16 seems to be the absolute minimum possible!
+// change according MINIMALIDEALSPEED below, too
+#define LOOP_DURATION 15                        //PARAM
+
+
+// how many loop-iterations to integrate over for speed measurement
+// question is: 2 or 3? change according MINIMALIDEALSPEED below, too
+#define SPEEDHISTORY 3                          //PARAM
+// adjust this value to the minimal speed that can be measured with the timing
+// parameters above, i.e. set to x = 1000 / (LOOP_DURATION * SPEEDHISTORY)
+#define MINIMALIDEALSPEED 23                    //PARAM
+
+
+// how many degrees before goal to start endgame mode
+// very important tweaking param for precision!
+// 2 seems high (good precision, possible stalling / unsmooth breaking)
+// 1 seems low (worse, but still good precision, less change of stalling, higher
+// chance to miss the goal "big time" [i.e. a couple of degrees])
+#define ENDGAMEBRAKINGSTARTDIST 2               //PARAM
+
+// maximum time for endgame mode, after that brake will jam in anyway
+// lower this time cautiously, if the motor stalls during this loop, probably
+// for a good reason
+#define ENDGAME_INNERLOOP_TIMEOUT 350           //PARAM
+
+// enable this to free/sleep 1ms of CPU time every waiting-loop iteration
+// during rampup and driving stages...
+// pro: improved responsiveness / better PID control / more CPU time for other
+// processes during driving, when CPU is not as much needed
+// con: may lead to less accuracy?!?! later starting of braking?
+#define SLEEP_DURING_WAIT_WHEN_DRIVING
+
+
+// PID parameters
+#define PIDUPSCALING 10000
+
+// HAVE TO BE UPDATED ALL THE TIME MANUALLY, depend on PIDUPSCALING!!!
+#define HARDCODED_KP -650                       //PARAM
+#define HARDCODED_KD -2500                      //PARAM
+// slightly different set for RunMotor2 (synced driving)
+#define HARDCODED_KP_SYNC -200                  //PARAM
+#define HARDCODED_KD_SYNC -1800                  //PARAM
+/*  // this was the "original formula"
+    long KP =  -1 * PIDUPSCALING / 20;  // -1/40 to -1/60 ????
+    long KD =  -1 * PIDUPSCALING /  4;  // -1/2  to -1/3
+*/
+
+// when driving with speed regulation, braking happens WITHOUT regulation
+// (it always does). To avoid that the controller overpowers the motor, we
+// clip the maximum allowed power value. But for speed reg, we must set this
+// limit a bit higher (i.e. to model our own regulation).
+#define ADDITIONALMAXSPEEDREGBRAKINGPOWER 30;   //PARAM
+
+// when STAGE_RAMPUP, "manual rampup" can be applied. how many constant-time
+// loop iterations should it take to get to power 100? if power < 100 is reached
+// before, rampup is finished. Multiply this with LOOP_DURATION to get the maximum
+// starting/rampup time for the power=100 case...
+#define SMOOTHSTARTSTEPS 18
+
+
+
+// --- DEBUGGING OPTIONS -----------
+//#define ENABLEDEBUGGING_LCD
+//#define ENABLEDEBUGGING_WAITAFTERLCD
+//#define ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+//#define ENABLEDEBUGGING_REMOTE
+//#define ENABLEDEBUGGING_ACOUSTIC
+//#define ENABLEDEBUGGING_ACOUSTICPROTOCOL
+//#define ENABLEDEBUGGING_OLDLCDTIMING
+//#define ENABLEDEBUGGING_REMOTELOGGING
+//#define ENABLEDEBUGGING_SHOWTASKS
+// ---------------------------------
+
+
+
+
+// *** SOME INCLUDES!
+#include "MotorFunctions.nxc"
+#include "SpeedFromPosLookup.nxc"
+
+
+
+
+
+//remove this debug info?
+#ifdef ENABLEDEBUGGING_OLDLCDTIMING
+	long receivedMsgTime;
+	long motorStartedTime;
+#endif
+
+
+#ifdef ENABLEDEBUGGING_REMOTELOGGING
+    //long debugStartTick = CurrentTick();
+    long remoteDebugMsgCounter = 0;
+    safecall void SendDebugMessage(const byte &port, const string msg) {
+        //string time = NumToStr(CurrentTick() - FirstTick());
+        string p    = NumToStr(port);
+        string n    = NumToStr(remoteDebugMsgCounter);
+        //string data = StrCat(time, "|", n, "|", p, ":", msg);
+        string data = StrCat(n, "|", p, ":", msg);
+        remoteDebugMsgCounter++;
+
+        SendMessage(DEBUG_OUTBOX, data);
+    }//end void
+#endif
+
+
+
+//TODO optimize message-parsing (ReceiveRemoteNumber, etc?)
+
+//TODO remember to check what happens when CHANGING SPEED during RUNTIME?!?!!?!!
+
+//TODO add anti-deadlock anti-hang stuff if direct command (other than stop) interferes?
+
+/*
+//TODO Implement LOOKUP TABLE in here!!!?
+inline long GetAbsBrakingDistFromAbsSpeed(const long &absSpeed) {
+    // absolute max realistic speed with full batteries (not akkus) is 1100 deg per sec
+    //return (absSpeed / 4) + 30;
+
+    //TODO maybe the plus-term below is not necessary after all...
+    // to avoid braking mode being skipped...
+    return ((absSpeed * absSpeed) / 2700 ) + ENDGAMEBRAKINGSTARTDIST + 1;
+}//end function
+
+//2nd routine for synced driving, need a bit more space to brake
+//TODO Implement LOOKUP TABLE in here!!!?
+inline long GetAbsBrakingDistFromAbsSpeed2(const long &absSpeed) {
+    // absolute max realistic speed with full batteries (not akkus) is 1100 deg per sec
+
+    //TODO maybe the plus-term below is not necessary after all...
+    // to avoid braking mode being skipped...
+    return ((absSpeed * absSpeed) / 2200 ) + ENDGAMEBRAKINGSTARTDIST + 5;
+}//end function
+*/
+
+// Following is a "dirty" preprocessor trick. We include ControllerCore.nxc
+// twice, with different macros defined each time, leading two two different
+// functions being imported (RunMotor and RunMotor2).
+
+
+// Old comment: To get functionality for TWO SYNCED MOTORS, do the following:
+// Always take THIS function, copy-paste it, call it RunMotor2, add another
+// argument port2 to it, and done. BEFORE the function, define RUNMOTOR2_SYNCMODE
+#undef RUNMOTOR2_SYNCMODE    // just to be safe :-)
+// this time, RunMotor will be imported!
+#define RUNMOTOR_CURRENTPORTNAME A
+#include "ControllerCore.nxc"
+
+#undef RUNMOTOR_CURRENTPORTNAME
+#define RUNMOTOR_CURRENTPORTNAME B
+#include "ControllerCore.nxc"
+
+#undef RUNMOTOR_CURRENTPORTNAME
+#define RUNMOTOR_CURRENTPORTNAME C
+#include "ControllerCore.nxc"
+
+#undef RUNMOTOR_CURRENTPORTNAME
+
+
+
+// Old comment: the following function must be an excact copy-paste-replica of the RunMotor
+// function from above, but with the name RunMotor2, the additional param port2,
+// RUNMOTOR2_SYNCMODE defined, and always speedreg=false. It also doesn't need
+// to be inline (to save space)...
+#define RUNMOTOR2_SYNCMODE
+// this time, RunMotor2 will be imported!
+
+#define RUNMOTOR_CURRENTPORTNAME 2
+
+#include "ControllerCore.nxc"
+#undef RUNMOTOR2_SYNCMODE    // just to be safe :-)
+
+
+
+#endif

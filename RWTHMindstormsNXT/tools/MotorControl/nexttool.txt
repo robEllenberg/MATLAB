@@ -1,0 +1,145 @@
+NeXTTool - USB & Bluetooth NXT communication utility
+
+C:\winapps\projects\BricxCC>nexttool -help
+NeXTTool version 1.0 (1.0.9.1, built April 12 2007 13:26:42)
+     Copyright (c) 2006 John Hansen
+Usage: NeXTTool [options] [actions]
+Options:
+   /COM=port: specify port name (COMn, usb, resource string, or alias)
+   /BT[=name]: use bluetooth (selects the first brick found or the named brick)
+   /HEX: use hexidecimal for numeric output
+   /Duration=<n>: specify the tone duration for the playtone action
+   /Inbox=<n>: use inbox number n when sending or reading a message
+   /Loop: loop when playing sound files
+   /Relative: reset output position relative
+   /Empty: empty mailbox when reading
+   /Bin[=filename]: dump data output as binary to a file (nxt.bin)
+Actions:
+   -init : initialize nxt.dat file
+   -listbricks : list resource names of all found NXT bricks
+   -clear : erase all items on the brick
+   -battery : return the battery level
+   -input=<N> : read input N (0-3)
+   -output=<N> : read the status of output N (0-2)
+   -mute : stop playing sounds
+   -playtone=<frequency> : play a tone for the specified duration
+   -run=<filename> : run the specified program
+   -runningprogram : return the name of the currently running program
+   -stop : stop the currently running program
+   -playfile=<filename> : play the specified sound file
+   -firmware=<filename> : download firmware
+   -download=<filename> : download the specified file to the NXT
+   -upload[=<pattern>] : upload the specified file(s) from the NXT (or *.*)
+   -listfiles[=<pattern>] : list the files matching the pattern (or *.*)
+   -listmodules[=<pattern>] : list the modules matching the pattern (or *.*)
+   -delete=<filename> : delete the specified file from the NXT
+   -datalog | -datalog_full: upload datalog (_full == verbose)
+   -eeprom=<n> | -eeprom_full: upload eeprom block (_full == all blocks)
+   -memory=<n> | -memory_full: upload 128 bytes of memory (_full == all memory)
+   -map: upload memory map
+   -keepalive : return the current sleep time limit
+   -sleep=<timeout> : set NXT sleep timeout (in minutes)
+   -msg=<string> : send the specified message to the NXT
+   -readmsg=<box> : read the message from the specified box
+   -resetoutputposition=<port> : reset the position for the specified port
+   -resetinputsv=<port> : reset the input scaled value for the specified port
+   -setname=<new_name> : set the name of the NXT
+   -getname : return the name of the NXT
+   -versions : return the NXT firmware and protocol versions
+   -deviceinfo : return all NXT device information
+   -freemem : return the amount of free memory
+   -lsstatus=<port> : return the low speed status for the specified port
+   -boot : reset the NXT into SAMBA mode (usb only)
+   -btreset : reset the NXT bluetooth to factory settings (usb only)
+   -defrag : defragment the NXT filesystem
+General:
+   -help : display command line options
+
+C:\winapps\projects\BricxCC>nexttool -clear
+
+C:\winapps\projects\BricxCC>nexttool -download=g:\nxt\programs\a2.rxe
+
+C:\winapps\projects\BricxCC>nexttool -download=g:\nxt\programs\nxtway.rxe
+
+C:\winapps\projects\BricxCC>nexttool -download=g:\nxt\programs\compass2.rxe
+
+C:\winapps\projects\BricxCC>nexttool -download=g:\nxt\programs\flourish_t3.rxe
+
+C:\winapps\projects\BricxCC>nexttool -listfiles
+flourish_t3.rxe=6600
+compass2.rxe=774
+nxtway.rxe=472
+a2.rxe=644
+
+C:\winapps\projects\BricxCC>nexttool -listmodules
+Comm.mod=327681, 0, 1896
+Input.mod=196609, 0, 80
+Button.mod=262145, 0, 36
+Display.mod=655361, 0, 1720
+Loader.mod=589825, 0, 8
+Low Speed.mod=720897, 0, 167
+Output.mod=131073, 0, 100
+Sound.mod=524289, 0, 30
+IOCtrl.mod=393217, 0, 2
+Command.mod=65537, 0, 32820
+Ui.mod=786433, 0, 40
+
+C:\winapps\projects\BricxCC>nexttool -listbricks
+USB0::0X0694::0X0002::001653FF0156::RAW
+
+C:\winapps\projects\BricxCC>type nxt.dat
+x=USB0::0X0694::0X0002::001653FF0156::RAW
+JCH2=BTH::JCH2::00:16:53:FF:01:56::5
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -versions
+Protocol version = 1.124
+Firmware version = 1.3
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -getname
+JCH2
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -deviceinfo
+Brick name = JCH2
+Bluetooth Address = 0
+Bluetooth signal strength = 0
+Free memory = 124680
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -runningprogram
+a2.rxe
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -stop
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -run=a2.rxe
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -runningprogram
+a2.rxe
+
+C:\winapps\projects\BricxCC>nexttool /COM=USB0::0X0694::0X0002::001653FF0156::RAW -battery
+7284
+
+C:\winapps\projects\BricxCC>nexttool /COM=usb -freemem
+124680
+
+C:\winapps\projects\BricxCC>dir *.rxe
+ Volume in drive C has no label.
+ Volume Serial Number is D433-F70A
+
+ Directory of C:\winapps\projects\BricxCC
+
+File Not Found
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -upload=a2.rxe
+
+C:\winapps\projects\BricxCC>dir *.rxe
+ Volume in drive C has no label.
+ Volume Serial Number is D433-F70A
+
+ Directory of C:\winapps\projects\BricxCC
+
+05/11/2006  06:00 PM               644 a2.rxe
+               1 File(s)            644 bytes
+               0 Dir(s)  50,024,546,304 bytes free
+
+C:\winapps\projects\BricxCC>nexttool /COM=x -playtone=440 /Duration=50
+
+C:\winapps\projects\BricxCC>nexttool -firmware=g:\nxt\firm103.rfw

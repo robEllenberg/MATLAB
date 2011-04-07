@@ -1,0 +1,955 @@
+//#!C
+/*
+% Part of MotorControl containing the main PD-controller function, to be
+% included multiple times via preprocessor tricks :-)
+%
+% Signature
+%   Author: Linus Atorf (see AUTHORS)
+%   Date: 2009/06/28
+%   Copyright: 2007-2009, RWTH Aachen University
+%
+%
+% ***********************************************************************************************
+% *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *
+% *                                                                                             *
+% *  The RWTH - Mindstorms NXT Toolbox is free software: you can redistribute it and/or modify  *
+% *  it under the terms of the GNU General Public License as published by the Free Software     *
+% *  Foundation, either version 3 of the License, or (at your option) any later version.        *
+% *                                                                                             *
+% *  The RWTH - Mindstorms NXT Toolbox is distributed in the hope that it will be useful,       *
+% *  but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS  *
+% *  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.             *
+% *                                                                                             *
+% *  You should have received a copy of the GNU General Public License along with the           *
+% *  RWTH - Mindstorms NXT Toolbox. If not, see <http://www.gnu.org/licenses/>.                 *
+% ***********************************************************************************************
+*/
+
+
+// this function CAN and HAS TO BE INCLUDED MULTIPLE TIMES!!!
+
+
+// Macro which adds A, B, or C to the end of a function/taskname or constant
+// useful when including the file multiple times to create mutliple identical
+// functions with different names for thread-safety (making them inline didn't
+// work somehow).
+#define _ADD_MOTORNAME(funcname) funcname##RUNMOTOR_CURRENTPORTNAME
+
+
+#ifdef RUNMOTOR2_SYNCMODE
+    safecall long GetAbsBrakingDistFromAbsSpeed2(const long &absSpeed) {
+        // absolute max realistic speed with full batteries (not akkus) is 1100 deg per sec
+
+        //TODO maybe the plus-term below is not necessary after all...
+        // to avoid braking mode being skipped...
+        return ((absSpeed * absSpeed) / 2200 ) + ENDGAMEBRAKINGSTARTDIST + 5;
+    }//end function
+#else
+
+    safecall long _ADD_MOTORNAME(GetAbsBrakingDistFromAbsSpeed) (const long &absSpeed) {
+        // absolute max realistic speed with full batteries (not akkus) is 1100 deg per sec
+        //return (absSpeed / 4) + 30;
+
+        //TODO maybe the plus-term below is not necessary after all...
+        // to avoid braking mode being skipped...
+        return ((absSpeed * absSpeed) / 2700 ) + ENDGAMEBRAKINGSTARTDIST + 1;
+    }//end function
+    
+#endif
+
+
+
+safecall bool _ADD_MOTORNAME(WaitUntilMotorStopped)(const byte &port) {
+/*
+RETURNS true if stopped by direct command
+
+This function waits until a braked motor has come to a full stop. The "trick" is
+that it's not only beeing waited until the motor has stopped for a very short
+time, but for certain period. This even works with oscillating movements as
+seen when jamming in the brake at full speed. Only monitoring if the motor "is at
+the same position as last time" wouldn't work because the oscillation could come
+accross the same position twice... This loop should work with different
+execution speeds, too.
+
+Actually I don't see quite why this function is this complex, but I'm pretty sure
+I had my reasons when MotorControl 1.0 and 1.1 were developed...
+
+*/
+
+
+    //much simpler approach now...
+
+    long lastPos = MotorTachoCount(port);
+    long curPos;
+    long lastChangedTick = CurrentTick();
+    long timeoutTick = CurrentTick() + MOTORSTOPPED_TIMEOUT;
+    long tmp;
+
+
+    // loop while in motion...
+    while ((lastChangedTick + MOTORSTOPPED_RESTINGPERIOD) > CurrentTick()) {
+
+        curPos = MotorTachoCount(port);
+        // reset "last motion" timepoint
+        if (lastPos != curPos) {
+            lastChangedTick = CurrentTick();
+        }//end if
+        lastPos = curPos;
+        
+        // check if direct command stopped us (indicated by TachoLimit...)
+        if ((MotorTachoLimit(port) == 0) && (MotorPower(port) == 0)) {
+            //direct command must have stopped us!
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                TextOut(0, DebugLinePos[port], "ABORTED(wait4Stop)        ");
+                Wait(300);
+            #endif
+            return true;
+        }//end if
+
+        
+
+        if (CurrentTick() >= timeoutTick) {
+            break;
+        }//end if
+    }//end while
+
+    return false;
+
+}//end void
+
+
+
+
+
+
+
+
+// To get functionality for TWO SYNCED MOTORS, do the following:
+// Always take RunMotor, copy-paste it, call it RunMotor2, add another
+// argument port2 to it, and done. BEFORE the function, define RUNMOTOR2_SYNCMODE
+
+// note how RunMotor2 doesn't need to be inline and takes 1 more argument...
+// RETURN is wether a direct command stopped us!!!!
+#ifdef RUNMOTOR2_SYNCMODE
+bool        RunMotor2(const byte &port, const int &power, const long &tacholimit, const bool &speedreg, const bool &holdbrake, const bool &smoothstart, const byte &port2) {
+#else
+inline bool _ADD_MOTORNAME(RunMotor) (const byte &port, const int &power, const long &tacholimit, const bool &speedreg, const bool &holdbrake, const bool &smoothstart) {
+#endif
+
+/*
+The whole concept works like this:
+There is a loop with static execution time for worst case -- if it's faster,
+there's busy waiting at the end. Durinc decelaration / braking, we control the
+motor with a PD-controller algorithm. The constant loop execution time is
+important, as a varying delta T for the controller is really bad. It would
+require a different set of KP and KD parameters, and the speed calculation the
+way it's currently implemented would also change its sliding integration window,
+so we stick with constant loop timing. Execution speed can vary since in the
+worst case, all 3 motors are controlled by this function, running in 3 threads
+at once. There is a 4th thread to listen for incoming messages, so we only have
+1 quarter of the NXT's original CPU power left per thread. We don't want to
+program statically, since than we'd allways have the worst case. Hence the
+dynamic busy waiting at the end, while still intelligently checking if the
+desired motor position has been reached (so the waiting is still useful in some
+way).
+
+So we've got a loop with constant execution time, and a PD-controller during
+deceleration. The motor-power will constantly be set down, linearly, dependent
+on its current position. This way, if it get's stuck (i.e. during braking the
+load somehow increases or the motor blocks), the controller adjusts the power
+accordingly (the controller has a given set-point for power, depending where
+in relation to our position target we stand).
+
+Since the loop is fairly slow in the worst case, we've got time to spare in the
+best case (2 threads running, 1 motor + 1 message listener). During the waiting
+time, we check if the motors get's close to its target -- this only matters
+during BRAKE stage.
+
+Yes, inside the big outer loop, there are different stages. During RAMPUP we can
+implement a manual rampup (power constantly increasing) for a smooth start.
+During driving, nothing happens but measuring speed and deciding when the whole
+braking/deceleration should begin.
+
+Then there's the BRAKING stage, with the already mentioned PD controller in
+action. This is what's actually important. To get precision, we have to very
+closely monitor when our desired target is reached. In order to achieve this,
+we've got the ENDGAME mode.
+
+ENDGAME phase will be entered a couple of degrees before the motor reaches its
+goal. The PD controller should have succeded by now to enforce a really low
+turning speed of the motor (just as we targeted/specified in our desired
+"speed at motor position" deceleration curve lookup table). The most important
+and most critical thing of the whole function is now to come to a stop at
+exactly the right position. All CPU time we have is needed to monitor the
+motor as often as possible and enable the brake at the target position. This
+is whats called the endgame inner loop. To avoid the very unlikely event of a
+lock-up (the motor gets blocked just a tiny degree or two befor its final goal),
+there's also a timeout.
+
+
+The idea of "stages" (or phases) during a main loop was chosen so that short
+movements are possible with the same code/function. If we had different loops
+after each other, we'd have to check for abort conditions all the time, and
+include speed monitoring in each loop.
+This way with stages in one loop, the algorithm (or command flow) can proceed
+from stage to stage, even if the current stage has to be ended premature (i.e.
+a motor is not fully ramped up yet, but already has to start braking in order
+to reach its target safely).
+
+*/
+
+
+
+
+// **** THINGS NOT IN THIS FUNCTION
+// - decision if NO CONTROLLED LOOP is needed (classic way?!)
+// - defer as much decision etc as possible to MATLAB, see below
+
+// **** More lookups needed:
+// - Brakingdist from Speed
+// - Absolute acceleration power during rampup (in discrete steps like 10, 20, etc)
+
+
+// --- Some DECLARATIONS -- not all of them, this is timecritical
+    long i;
+
+    int  powerSgn       = sign(power);
+    long tachoTarget    = powerSgn * tacholimit;
+
+
+// --- Reset counters etc
+//     * See below, now happens implicitely in MotorCmd*Reset
+    
+// --- Decide if SIMPLE FUNCTION needed?
+//     * For small powers!
+//     * For (very?) short distances???
+
+// --- Start driving (important that its EARLY in this function -- for direct commands)
+//     * Runstate RUNNING
+//     * power = +-1
+//     * tacholimit already...
+
+
+    //TODO why exactly do we only power up to +/-1 here? couldn't it be full speed already?
+    // maybe it's because for speed monitor initialization, we use TachoCount and need it to remain
+    // constant etc?
+    
+    //avoid already synced motors (that doesn't work as we know...)
+    //turning off motors is in general not a bad idea to make sure everything works :-)
+    #ifdef RUNMOTOR2_SYNCMODE
+    until((MotorRegulation(port) == OUT_REGMODE_IDLE) && (MotorRegulation(port2) == OUT_REGMODE_IDLE)) {
+    #else
+    until(MotorRegulation(port) == OUT_REGMODE_IDLE) {
+    #endif
+        // repeatedly setting this is not nice, but so
+        // we don't need a timeout...!
+        #ifndef RUNMOTOR2_SYNCMODE
+            MotorOff(port);
+        #else
+            MotorOff2(port, port2);
+        #endif
+        // make sure VM applies our settings
+        Wait(1);
+    }//end until
+    
+    #ifdef RUNMOTOR2_SYNCMODE
+        MotorCmdDoubleReset(port, powerSgn, tacholimit, port2);
+    #else
+        MotorCmdSingleReset(port, powerSgn, tacholimit, speedreg);
+    #endif
+    
+
+    #ifdef ENABLEDEBUGGING_OLDLCDTIMING
+        if (port == OUT_B) { // works only for motor B, by design
+            motorStartedTime = CurrentTick() - receivedMsgTime;
+        }//end if
+    #endif
+
+
+// --- Declare and Initialize various variables
+//     * STAGE is RAMPUP
+    int  curStage = STAGE_RAMPUP;
+
+    int  absPower = abs(power);
+
+    int maxAbsBrakingPower;
+    maxAbsBrakingPower = absPower;
+    if (speedreg) {
+        maxAbsBrakingPower += ADDITIONALMAXSPEEDREGBRAKINGPOWER;
+        if (maxAbsBrakingPower > 100) {
+            maxAbsBrakingPower = 100;
+        }//end if
+    }//end if
+
+
+    long absBrakingDist;
+    long brakingStartSpeed;
+    long brakingStartTacho;
+
+    long loopStartTick;
+    long waitEndTick;
+    
+    bool endgameSuccessful = false;
+    
+    long rampupLoopCount = 0;
+    long newPower;
+    
+    
+
+    //PID stuff
+    long err_0 = 0;  // current error (t =   0)
+    long err_1 = 0;  // prev.   error (t = - T)
+    long curPIDPowerUpscaled = absPower * PIDUPSCALING;
+    long newAbsPower;
+    long desiredSpeed;
+
+    // speed stuff
+    long curSpeed;
+    int  SpeedLogIndex = 0;
+    long TachoCountLog[SPEEDHISTORY];
+    long TickCountLog[SPEEDHISTORY];
+
+    // init speedlog
+    for(i = 0; i < SPEEDHISTORY; i++) {
+        TachoCountLog[i] = 0; // should still be 0, was reset just a moment ago
+        TickCountLog[i]  = CurrentTick(); //careful, check if this works...
+    }//end for
+
+
+#ifdef ENABLEDEBUGGING_LCD
+    long loopCount = 0;
+    long lastTick  = CurrentTick();
+    long lastLoopTime;
+    long totalStartTick = CurrentTick();
+    long totalEndTick;
+    long totalControlTime;
+    long endgameLoopCount = 0;
+    string lcdTmp;
+    string lcdTmp1;
+    string lcdTmp2;
+#endif// - - - - - - - - - -
+
+#ifdef ENABLEDEBUGGING_REMOTE
+    string tmp;
+    string tmp1;
+    string tmp2;
+    string tmp3;
+    bool brakingStartMarkerSent = false;
+#endif// - - - - - - - - - -
+
+#ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+    string lcdTmp;
+    int DebugLinePos[3];
+    DebugLinePos[0] = LCD_LINE1;
+    DebugLinePos[1] = LCD_LINE3;
+    DebugLinePos[2] = LCD_LINE5;
+    int DebugLinePos2[3];
+    DebugLinePos2[0] = LCD_LINE2;
+    DebugLinePos2[1] = LCD_LINE4;
+    DebugLinePos2[2] = LCD_LINE6;
+    TextOut(0, LCD_LINE8, "SLOW ANTIBUG ON  ", true);
+#endif// - - - - - - -
+
+
+#ifdef ENABLEDEBUGGING_ACOUSTIC
+    PlayTone(300,100);
+#endif
+
+#ifdef ENABLEDEBUGGING_REMOTELOGGING
+    SendDebugMessage(port, "Entering main loop");
+#endif
+
+// --- MAIN LOOP ---------------------
+    while(true) {
+    
+//    * record time
+        loopStartTick = CurrentTick();
+        
+        #ifdef ENABLEDEBUGGING_LCD
+            loopCount++;
+            lastLoopTime = CurrentTick() - lastTick;
+            lastTick     = CurrentTick();
+        #endif// - - - - - - - - - -
+        
+
+//    * check STOP CONDITIONS?
+//      - already there?
+//      - direct command stopped us?
+        // this is like an emergency-check to see if endgame should be enabled?
+        //TODO do we need this below?
+        /*
+        if ( abs(tachoTarget - MotorTachoCount(port)) >= 2 ) {
+            // we are almost already there :-)
+            // or even too far :-/
+        }//end if
+        */
+        
+        if ((MotorPower(port) == 0) || (MotorTachoLimit(port) == 0)) {
+            //direct command must have stopped us!
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                TextOut(0, DebugLinePos[port], "ABORTED(start)        ");
+                Wait(300);
+            #endif
+            return true;
+        }//end if
+        
+
+//    * RECORD SPEED
+//      - with this long loop execution time, use speed history of 2
+//      - 2 vars, toggle between history...
+        curSpeed = ((MotorTachoCount(port) - TachoCountLog[SpeedLogIndex]) * 1000) / (CurrentTick() - TickCountLog[SpeedLogIndex]);
+
+        //TODO optimize speed logging by using only 2 history values and toggling between them
+
+        // record speedlog data to previous index...
+        i = SpeedLogIndex - 1;
+        if (i < 0) i = SPEEDHISTORY-1;
+        TachoCountLog[i] = MotorTachoCount(port);
+        TickCountLog[i]  = CurrentTick();
+
+        // move current index for next reading
+        SpeedLogIndex++;
+        if (SpeedLogIndex > SPEEDHISTORY-1) SpeedLogIndex = 0;
+
+
+//    * if RAMPUP STAGE:
+//      - increase power (set according value from lookup / count loop-passes)
+//      - enter NEXT STAGE when power is reached...
+//      - maybe enable SPEED REG if not already done?
+        if (curStage == STAGE_RAMPUP) {
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                TextOut(0, DebugLinePos[port], "RAMPUP          ");
+            #endif
+            
+            // do we need rampup at all?
+            if (smoothstart) {
+            
+                rampupLoopCount++;
+                // when rampup is done
+                if (rampupLoopCount >= SMOOTHSTARTSTEPS) {
+                    if (speedreg) {
+                        //there's no speedreg for synced driving...
+                        UpdatePowerAndEnableSpeedReg(port, power);
+                    } else {
+                        #ifndef RUNMOTOR2_SYNCMODE
+                            UpdatePower(port, power);
+                        #else
+                            UpdatePower2(port, power, port2);
+                        #endif
+                    }//end if
+                    curStage = STAGE_DRIVING;
+                } else {
+                    // simple linear interpolation between 0->100
+                    newPower = ((rampupLoopCount * 100)/SMOOTHSTARTSTEPS);
+                    // if power < 100 we might be done sooner:
+                    if (newPower > absPower) {
+                        if (speedreg) {
+                            //there's no speedreg for synced driving...
+                            UpdatePowerAndEnableSpeedReg(port, power);
+                        } else {
+                            #ifndef RUNMOTOR2_SYNCMODE
+                                UpdatePower(port, power);
+                            #else
+                                UpdatePower2(port, power, port2);
+                            #endif
+                        }//end if
+                        curStage = STAGE_DRIVING;
+                    } else {
+                        // here's the actual rampup step!
+                        #ifndef RUNMOTOR2_SYNCMODE
+                            UpdatePower(port, newPower * powerSgn);
+                        #else
+                            UpdatePower2(port, newPower * powerSgn, port2);
+                        #endif
+
+                    }//end if
+                }//end if
+                
+            } else { // no rampup
+            
+                // full power right away
+                if (speedreg) {
+                    //there's no speedreg for synced driving...
+                    UpdatePowerAndEnableSpeedReg(port, power);
+                } else {
+                    #ifndef RUNMOTOR2_SYNCMODE
+                        UpdatePower(port, power);
+                    #else
+                        UpdatePower2(port, power, port2);
+                    #endif
+                }//end if
+
+                curStage = STAGE_DRIVING;
+                
+            }//end if
+
+        }//end if
+        
+//    * if DRIVING STAGE:
+//      - look up current braking distance from current speed
+//      - decide: stage change? time to brake?
+//      - enter braking stage, set braking dist!
+//      - disable speed reg if necessary...
+//      Actually do this during either rampup or driving
+//      (that's the whole idea: braking even if already necessary during rampup)
+
+        //optimized, OLD: if ((curStage == STAGE_DRIVING) || (curStage == STAGE_RAMPUP)) {
+        if (curStage <= STAGE_DRIVING) {
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                if (curStage == STAGE_DRIVING) {
+                    TextOut(0, DebugLinePos[port], "DRIVING        ");
+                }//end if
+            #endif
+
+            // we've got two different Bremsweg-Algos (sync driving needs a bit more way ahead)
+            #ifdef RUNMOTOR2_SYNCMODE
+                absBrakingDist = GetAbsBrakingDistFromAbsSpeed2(abs(curSpeed));
+            #else
+                absBrakingDist = _ADD_MOTORNAME(GetAbsBrakingDistFromAbsSpeed)(abs(curSpeed));
+            #endif
+                
+                
+            // make the following safe for both power signs!
+            if (powerSgn > 0) {
+                // a little dirty preprocessor hack...
+                #ifdef RUNMOTOR2_SYNCMODE
+                if ((tachoTarget -  MotorTachoCount(port)) <= absBrakingDist || (tachoTarget -  MotorTachoCount(port2)) <= absBrakingDist ) {
+                #else
+                if ((tachoTarget -  MotorTachoCount(port)) <= absBrakingDist ) {
+                #endif
+                    //~~~~~~~~~~~~~~~~~~ same code from here
+                    // ok, we're close enough, start braking!
+                    curStage = STAGE_BRAKING;
+                    // record this for later down (for speed lookup)
+                    brakingStartSpeed = curSpeed;
+                    brakingStartTacho = powerSgn * (tacholimit - absBrakingDist);
+                    // disable SPEED REG if needed
+                    if (speedreg) {
+                        // again no need to care about synced driving
+                        DisableSpeedRegWhithMotorOn(port);
+                        Wait(1); // for FW to process
+                    }//end if
+                    //~~~~~~~~~~~~~~~~~~ same code until here
+                }//end if
+            } else {
+                #ifdef RUNMOTOR2_SYNCMODE
+                if (((MotorTachoCount(port) - tachoTarget) <= absBrakingDist) || ((MotorTachoCount(port2) - tachoTarget) <= absBrakingDist)) {
+                #else
+                if ((MotorTachoCount(port) - tachoTarget) <= absBrakingDist ) {
+                #endif
+                    //~~~~~~~~~~~~~~~~~~ same code from here
+                    // ok, we're close enough, start braking!
+                    curStage = STAGE_BRAKING;
+                    // record this for later down (for speed lookup)
+                    brakingStartSpeed = curSpeed;
+                    brakingStartTacho = powerSgn * (tacholimit - absBrakingDist);
+                    // disable SPEED REG if needed
+                    if (speedreg) {
+                        // again no need to care about synced driving
+                        DisableSpeedRegWhithMotorOn(port);
+                        Wait(1); // for FW to process
+                    }//end if
+                    //~~~~~~~~~~~~~~~~~~ same code until here
+                }//end if
+            }//end if
+            
+
+
+        }//end if
+        
+//    * if BRAKING STAGE:
+//     ( - check endbraking special mode conditions )
+//     (    . maybe skip PID if time for endgame?   )
+//      - PID control
+//        . calc current error
+//        . calc new setpoint
+//        . use KP and KD constants as MACROS (#define), not VARS!
+//        . clip power and set
+        if (curStage == STAGE_BRAKING) {
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                TextOut(0, DebugLinePos[port], "BRAKING:top        ");
+            #endif
+            #ifdef ENABLEDEBUGGING_REMOTELOGGING
+                SendDebugMessage(port, "Braking: Beginning");
+            #endif
+
+            #ifdef ENABLEDEBUGGING_REMOTE
+                if(!brakingStartMarkerSent) {
+                    SendMessage(OUTBOX, "1050|0|0");
+                    brakingStartMarkerSent = true;
+                }//end if
+            #endif// - - - - - - - - - -
+
+
+            // TODO maybe replace this variable (dont use it) and do it inline?
+            desiredSpeed = GetIdealSpeedFromPos(abs(MotorTachoCount(port) - brakingStartTacho), brakingStartSpeed, absBrakingDist);
+
+            // shift/calculate all errors for current cycle
+            err_1 = err_0;
+            err_0 = curSpeed - desiredSpeed; //replace desiredSpeed with inline?
+
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                TextOut(0, DebugLinePos[port], "BRAKING:speed/err        ");
+            #endif
+            //#ifdef ENABLEDEBUGGING_REMOTELOGGING
+            //    SendDebugMessage(port, "Braking: IdealSpeed / error calced");
+            //#endif
+
+
+            // use different KD, KP consts for sync:
+            #ifdef RUNMOTOR2_SYNCMODE
+                // Our PD-Controller is still dependent on turning direction...
+                if (powerSgn > 0) {
+                    curPIDPowerUpscaled = curPIDPowerUpscaled
+                                        + (HARDCODED_KD_SYNC * (err_0 - err_1))
+                                        + (HARDCODED_KP_SYNC * err_1);
+                } else {
+                    curPIDPowerUpscaled = curPIDPowerUpscaled
+                                        - (HARDCODED_KD_SYNC * (err_0 - err_1))
+                                        - (HARDCODED_KP_SYNC * err_1);
+                }//end if
+            #else
+                // Our PD-Controller is still dependent on turning direction...
+                if (powerSgn > 0) {
+                    curPIDPowerUpscaled = curPIDPowerUpscaled
+                                        + (HARDCODED_KD * (err_0 - err_1))
+                                        + (HARDCODED_KP * err_1);
+                } else {
+                    curPIDPowerUpscaled = curPIDPowerUpscaled
+                                        - (HARDCODED_KD * (err_0 - err_1))
+                                        - (HARDCODED_KP * err_1);
+                }//end if
+            #endif
+
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                TextOut(0, DebugLinePos[port], "BRAKING:PIDdone        ");
+            #endif
+
+            //#ifdef ENABLEDEBUGGING_REMOTELOGGING
+            //    SendDebugMessage(port, "Braking: PID calc done, clipping power");
+            //#endif
+
+
+            // downscaling
+            newAbsPower = curPIDPowerUpscaled / PIDUPSCALING;
+            // clip these values!
+            if (newAbsPower > maxAbsBrakingPower) {
+                newAbsPower = maxAbsBrakingPower;
+            } else if (newAbsPower < 1) {
+                newAbsPower = 1;
+            }//end if
+
+
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                TextOut(0, DebugLinePos[port], "BRAKING:PwrCalced        ");
+            #endif
+            #ifdef ENABLEDEBUGGING_REMOTELOGGING
+                SendDebugMessage(port, "Braking: Setting new power");
+            #endif
+
+
+            
+            //finally set new power!
+            #ifndef RUNMOTOR2_SYNCMODE
+                UpdatePower(port, powerSgn * newAbsPower);
+            #else
+                UpdatePower2(port, powerSgn * newAbsPower, port2);
+            #endif
+
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                lcdTmp = NumToStr(newAbsPower);
+                lcdTmp = StrCat("BRAKING:Pwr=", lcdTmp, "     ");
+                TextOut(0, DebugLinePos[port], lcdTmp);
+            #endif
+
+            #ifdef ENABLEDEBUGGING_REMOTE
+                tmp1 = NumToStr(err_0);
+                tmp2 = NumToStr(desiredSpeed);
+                tmp3 = NumToStr(curSpeed);
+                tmp = StrCat(tmp1, "|", tmp2, "|", tmp3);
+                SendMessage(OUTBOX, tmp);
+            #endif// - - - - - - - - - -
+            
+        }//end if
+
+//    * WAIT
+//      - burn constant CPU time by waiting for max delay...
+//      - keep on checking tachocount for ENDGAME MODE?
+//      - (MAYBE keep on checking direct command cancellation?)
+
+        #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+            TextOut(0, DebugLinePos2[port], " waitloop       ");
+        #endif
+
+        waitEndTick = loopStartTick + LOOP_DURATION; //precalc loop-end
+        while (CurrentTick() < waitEndTick) {
+
+            //already there? check for endgame mode
+            if (powerSgn > 0) {
+                // this nice little line also detects if the tachotarget is way
+                // out of reach already (not a nice case though)
+                #ifdef RUNMOTOR2_SYNCMODE
+                if (((tachoTarget - MotorTachoCount(port)) <=  ENDGAMEBRAKINGSTARTDIST) || ((tachoTarget - MotorTachoCount(port2)) <=  ENDGAMEBRAKINGSTARTDIST)) {
+                #else
+                if ((tachoTarget - MotorTachoCount(port)) <=  ENDGAMEBRAKINGSTARTDIST) {
+                #endif
+                    curStage = STAGE_ENDGAME;
+                    #ifdef ENABLEDEBUGGING_ACOUSTIC
+                        PlayTone(1000,100);
+                    #endif
+                    break;
+                }//end if
+            } else {
+                // modified to work for negative stuff...
+                #ifdef RUNMOTOR2_SYNCMODE
+                if (((MotorTachoCount(port) - tachoTarget) <=  ENDGAMEBRAKINGSTARTDIST) || ((MotorTachoCount(port2) - tachoTarget) <=  ENDGAMEBRAKINGSTARTDIST)) {
+                #else
+                if ((MotorTachoCount(port) - tachoTarget) <=  ENDGAMEBRAKINGSTARTDIST) {
+                #endif
+                    curStage = STAGE_ENDGAME;
+                    #ifdef ENABLEDEBUGGING_ACOUSTIC
+                        PlayTone(1000,100);
+                    #endif
+                    break;
+                }//end if
+            }//end if
+            
+
+            //direct command stopped us?
+            if ((MotorPower(port) == 0) || (MotorTachoLimit(port) == 0)) {
+                #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                    TextOut(0, DebugLinePos[port], "ABORTED(wait)        ");
+                    Wait(300);
+                #endif
+                return true;
+            }//end if
+            
+            #ifdef SLEEP_DURING_WAIT_WHEN_DRIVING
+                if (curStage <= STAGE_DRIVING) {
+                    // free some CPU time...
+                    Wait(1);
+                }//end if
+            #endif
+
+        }//end while (times out when static worst case looptime is over (~10 to 20ms)
+
+        #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+            TextOut(0, DebugLinePos2[port], "              ");
+        #endif
+        #ifdef ENABLEDEBUGGING_REMOTELOGGING
+            SendDebugMessage(port, "Wait-loop done");
+        #endif
+
+//    * if SPECIAL ENDGAME BRAKING
+//      - FAST & SIMPLE INNER LOOP!!!
+//        . check position
+//        . enable HARD BRAKE if necessary, jump out of loop
+        if (curStage == STAGE_ENDGAME) {
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                TextOut(0, DebugLinePos[port], "ENDGAME        ");
+            #endif
+            #ifdef ENABLEDEBUGGING_REMOTE
+                SendMessage(OUTBOX, "-300|0|0");
+            #endif// - - - - - - - - - -
+            #ifdef ENABLEDEBUGGING_REMOTELOGGING
+                SendDebugMessage(port, "Endgame begins");
+            #endif
+
+
+            // fast inner loop now!
+            // don't forget TIMEOUT or something, avoid possible lock up,
+            // unfortunately it is possible...
+            waitEndTick = CurrentTick() + ENDGAME_INNERLOOP_TIMEOUT; //precalc loop-end
+            // make two loops to save execution time!
+            if (powerSgn > 0) {
+                while (CurrentTick() < waitEndTick) {
+                    #ifdef RUNMOTOR2_SYNCMODE
+                    if ((MotorTachoCount(port) >= tachoTarget) || (MotorTachoCount(port2) >= tachoTarget)) {
+                    #else
+                    if (MotorTachoCount(port) >= tachoTarget) {
+                    #endif
+                        //WE'RE THERE!!!
+                        endgameSuccessful = true;
+                        break;
+                    }//end if
+                    // even for syncmode, only check first motor...
+                    if (MotorTachoLimit(port) == 0) {
+                        //direct command must have stopped us!
+                        #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                            TextOut(0, DebugLinePos[port], "ABORTED(endgame)        ");
+                            Wait(300);
+                        #endif
+                        return true;
+                    }//end if
+                    #ifdef ENABLEDEBUGGING_LCD
+                        endgameLoopCount++;
+                    #endif
+                }//end while
+            } else { // negative power sign
+                while (CurrentTick() < waitEndTick) {
+                    #ifdef RUNMOTOR2_SYNCMODE
+                    if ((MotorTachoCount(port) <= tachoTarget) || (MotorTachoCount(port2) <= tachoTarget)) {
+                    #else
+                    if (MotorTachoCount(port) <= tachoTarget) {
+                    #endif
+                        //WE'RE THERE!!!
+                        endgameSuccessful = true;
+                        break;
+                    }//end if
+                    // even for syncmode, only check first motor...
+                    if (MotorTachoLimit(port) == 0) {
+                        //direct command must have stopped us!
+                        #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                            TextOut(0, DebugLinePos[port], "ABORTED(endgame)        ");
+                            Wait(300);
+                        #endif
+                        return true;
+                    }//end if
+
+                    #ifdef ENABLEDEBUGGING_LCD
+                        endgameLoopCount++;
+                    #endif
+                }//end while
+            }//end if
+
+            //if succesful or not, BRAKE (before debug)!
+            #ifndef RUNMOTOR2_SYNCMODE
+                MotorBrake(port);
+            #else
+                MotorBrake2(port, port2);
+            #endif
+
+            //now there's a little time for debug...
+            #ifdef ENABLEDEBUGGING_ACOUSTIC
+                if (!endgameSuccessful) {
+                    PlayTone(4000,100);
+                }//end if
+            #endif
+
+            #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+                if (endgameSuccessful) {
+                    TextOut(0, DebugLinePos[port], "ENDGAME SUCCESS    ");
+                } else {
+                    TextOut(0, DebugLinePos[port], "ENDGAME TIMEOUT    ");
+                }//end if
+            #endif
+            
+            #ifdef ENABLEDEBUGGING_REMOTELOGGING
+                if (endgameSuccessful) {
+                    SendDebugMessage(port, "Endgame successful");
+                } else {
+                    SendDebugMessage(port, "Endgame timed out");
+                }//end if
+            #endif
+            
+            // and this control process is finally over!
+            break;
+            
+        }//end if (stage ENDGAME)
+
+
+    }//end while
+// --- END MAIN LOOP ---------------------
+
+
+    #ifdef ENABLEDEBUGGING_LCD
+        totalEndTick = CurrentTick();
+        totalControlTime = CurrentTick() - totalStartTick;
+    #endif
+
+// --- seems obsolete: if loop exited manually by direct command, exit void!
+//     (because clean exit and then return should all be above inside loop)
+
+// --- monitor braking (as in old MotorControl)
+//     * release when necessary at full stop
+
+    //TODO what happens if during these final and "save" (esasy) stopping/braking
+    // phase, a new direct command arrives and does weired stuff? it will definitely
+    // mess up our current motor state, maybe that's not too bad...
+
+    #ifdef ENABLEDEBUGGING_REMOTELOGGING
+        SendDebugMessage(port, "Waiting for Motorstop");
+    #endif
+
+    bool stoppedByDirectCmd = false;
+    stoppedByDirectCmd = _ADD_MOTORNAME(WaitUntilMotorStopped)(port);
+
+
+// --- Motor off / idle, over & out?
+    if (!holdbrake) {
+        #ifndef RUNMOTOR2_SYNCMODE
+            MotorOff(port);
+        #else
+            MotorOff2(port, port2);
+        #endif
+    }//end if
+
+    // tiny wait for motorstop..., sometimes it really is better...
+    Wait(3);
+    
+    
+    #ifdef ENABLEDEBUGGING_REMOTELOGGING
+        SendDebugMessage(port, "Finished!");
+    #endif
+
+    #ifdef ENABLEDEBUGGING_REMOTE
+        SendMessage(OUTBOX, "-480|0|0");
+    #endif// - - - - - - - - - -
+
+    
+// --- Display Debug Info if necessary
+    #ifdef ENABLEDEBUGGING_LCD
+
+    
+        lcdTmp = NumToStr(loopCount);
+        lcdTmp = StrCat("loops=", lcdTmp);
+        TextOut(0,LCD_LINE1, lcdTmp, true);
+
+        lcdTmp = NumToStr(totalControlTime / loopCount);
+        lcdTmp = StrCat("t/loop=", lcdTmp);
+        TextOut(0,LCD_LINE2, lcdTmp);
+
+        lcdTmp = NumToStr((loopCount * 1000) / totalControlTime);
+        lcdTmp = StrCat("loops/s=", lcdTmp);
+        TextOut(0,LCD_LINE3, lcdTmp);
+
+        lcdTmp = NumToStr(lastLoopTime);
+        lcdTmp = StrCat("lastloop=", lcdTmp);
+        TextOut(0,LCD_LINE4, lcdTmp);
+
+        lcdTmp1 = NumToStr(MotorTachoCount(port));
+        lcdTmp2 = NumToStr(tacholimit);
+        lcdTmp = StrCat("tacho=", lcdTmp1, "(", lcdTmp2, ")");
+        TextOut(0,LCD_LINE5, lcdTmp);
+        
+        // endgame duration & count
+        lcdTmp1 = NumToStr(endgameLoopCount);
+        lcdTmp2 = NumToStr(totalEndTick - (waitEndTick - ENDGAME_INNERLOOP_TIMEOUT));
+        lcdTmp = StrCat("endg=", lcdTmp1, " in ", lcdTmp2, "ms");
+        TextOut(0,LCD_LINE6, lcdTmp);
+
+		#ifdef ENABLEDEBUGGING_WAITAFTERLCD
+			Wait(5000);
+	        //until (ButtonPressed(BTNCENTER, false));
+		#endif
+
+    #endif
+   
+    #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+        Wait(200);
+        TextOut(0, DebugLinePos[port], "FINISHED        ");
+    #endif
+    
+     // return wether a direct command stopped us...
+    return stoppedByDirectCmd;
+    
+
+}//end void
+
+
+// the following function must be an excact copy-paste-replica of the RunMotor
+// function from above, but with the name RunMotor2, the additional param port2,
+// RUNMOTOR2_SYNCMODE defined, and always speedreg=false. It also doesn't need
+// to be inline (to save space)...
+
+

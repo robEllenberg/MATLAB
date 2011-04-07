@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# script to ease connecting to an NXT brick
+# (c) 2007-2009 Johannes Ballé
+
+# test if syntax is correct; if not, print help and exit
+
+if [ $# = 0 -o $# -gt 2 ] || [ "$1" = "--help" -o "$1" = "-h" ] || ! { [ $# = 1 ] || [ "$2" -ge 0 ] 2>/dev/null; }; then
+	cat <<-END_HELP >&2
+		${0##*/} <MAC address/device name> [rfcomm device number]
+
+		${0##*/} establishes a persistent connection to the MAC address
+		or device name given in the first argument. The second, optional argument
+		specifies which rfcomm device should be used. If omitted, the first
+		available device will be used.
+
+		Once the connection is established, ${0##*/} waits until it receives
+		any termination signal (which happens, for instance, when Ctrl-C is
+		pressed or the shell window is closed). Then, the connection is
+		taken down.
+
+		Examples:
+
+		${0##*/} NXT-20-B 2
+
+		This connects the NXT brick named "NXT-20-B" to rfcomm2.
+
+		${0##*/} 00:16:53:06:D8:67
+
+		This connects the NXT brick with the hardware address 00:16:53:06:D8:67
+		to the first available rfcomm device (if no others are used, this will
+		be rfcomm0).
+
+		Depending on your Linux distribution, you will find the rfcomm device file
+		either at /dev/rfcommX or /dev/bluetooth/rfcommX.
+	END_HELP
+	exit 128
+fi
+
+# if device name is given, check if it's already used
+
+if [ $# = 2 ]; then
+	(( DEVICE=$2 ))
+	if [ -e /dev/rfcomm$DEVICE -o -e /dev/bluetooth/rfcomm$DEVICE ]; then
+		echo "rfcomm$DEVICE is already in use!"
+		exit 3
+	fi
+fi
+
+# if hardware address is given, we're all set. otherwise, perform a scan
+
+if [[ $1 =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
+	MAC=$1
+else
+	NAME="$1"
+	echo -n "Scanning for '$NAME' ... " >&2
+	MAC=$( hcitool scan | awk -F '\t' '$2 ~ /^([0-9a-fA-F]+:)+[0-9a-fA-F]+$/ && $3 == "'"$NAME"'" { print $2 }' )
+	if [ -z $MAC ]; then
+		echo "not found." >&2
+		exit 1
+	fi
+	if [[ $MAC == *\ * ]]; then
+		echo "found multiple devices:" >&2
+		echo >&2
+		for i in $MAC; do
+			echo '	'$i >&2
+		done
+		echo >&2
+		echo "Use ${0##*/} with one of the addresses above." >&2
+		exit 2
+	fi
+	echo "found $MAC." >&2
+fi
+
+# if device is not given, find first unused device
+
+if [ -z $DEVICE ]; then
+	(( DEVICE=0 ))
+	while [ -e /dev/rfcomm$DEVICE -o -e /dev/bluetooth/rfcomm$DEVICE ]; do
+		(( DEVICE++ ))
+	done
+fi
+
+rfcomm -r connect rfcomm$DEVICE $MAC &
+
+trap "kill $!" 1 3 9 15
+wait

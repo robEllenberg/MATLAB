@@ -1,0 +1,399 @@
+RWTH - Mindstorms NXT Toolbox version 4.04 (stable)
+
+    * New features:
+          o Support for new sensors:
+                + LEGO NXT 2.0 Color (see OpenNXT2Color, GetNXT2Color)
+                + HiTechnic Color V2 (see OpenColor, GetColor)
+                + HiTechnic EOPD (see OpenEOPD, CalibrateEOPD, GetEOPD)
+    * Bugfixes:
+          o Fixed a bug (timeout too small) in GetSound that caused data to be 0 for 200ms after opening the sensor
+          o Fixed a bug that limited the maximum TachoLimit for NXTMotor to 99999 instead of 999999
+    * Improvements / changes:
+          o Recommended LEGO firmware is now version 1.28 or better
+          o Updated MotorControl to current version 2.2 (recompiled with new compiler for better stability)
+          o Added warnings for analog sensor Get-functions in case data do not become valid
+          o Increased time out periods in analog sensor Get-functions
+          o Toolbox optimization is not necessary anymore since MATLAB Release 2010a (version 7.10 and newer), added version check to OptimizeToolboxPerformance
+          o Added some clarifactions to documentation about Bluetooth for serial port devices on Mac OS
+          o Minor documentation updates (fixed typos and some broken links)
+    * Known bugs and limitations:
+          o USB connections on Windows 64bit systems can be problematic, this depends on MATLAB and the Fantom driver. As workaround a 32bit version of MATLAB is recommended.
+          o Trying to open USB handles on Linux with no NXT connected but old handles still open can rarely lead to MATLAB crashing. Using COM_CloseNXT prevents this.
+          o Mixing methods from the NXTMotor class and the function DirectMotorCommand can lead to warnings or other problems.
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows (they do work with Bluetooth on Windows, and with both USB and BT on Linux).
+          o For an up-to-date list of bugs, issues and feature requests, see http://www.mindstorms.rwth-aachen.de/trac/report
+    * October 1st, 2010
+
+    
+    
+RWTH - Mindstorms NXT Toolbox version 4.03 (stable)
+
+    * New features:
+          o No new features / no code changes in this release
+    * Improvements
+          o Fixed broken See also: links in function help-files
+          o Corrected minor typos in motor control tutorial
+          o Added default Bluetooth configuration files for Linux (called rfcomm0.ini to rfcomm6.ini) 
+    * Known bugs and limitations:
+          o Trying to open USB handles on Linux with no NXT connected but old handles still open can rarely lead to MATLAB crashing. Using COM_CloseNXT prevents this.
+          o Mixing methods from the NXTMotor class and the function DirectMotorCommand can lead to warnings or other problems.
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows (they do work with Bluetooth on Windows, and with both USB and BT on Linux).
+    * November 25th, 2009
+
+    
+    
+RWTH - Mindstorms NXT Toolbox version 4.02 (stable)
+
+    * New features:
+          o Comprehensive new help section "Tutorial: Programming Robots" (covers USB/Bluetooth connections, motor and sensor control)
+          o New example Example_5_MoveUpAndDown added to demos-folder
+          o Included tool ToolboxTest again, added and updated new tests and integrity checks
+    * Bugfixes:
+          o Workaround for Linux to prevent MATLAB from crashing when opening USB handles with no NXT device connected if a NXT was connected via USB before (possible bug in libusb?). Always remember to clean up your handles after use!
+    * Improvements / changes:
+          o Improved tool ToolboxUpdate (can download zip-files now)
+          o Updated documentation in various places
+    * Known bugs and limitations:
+          o Trying to open USB handles on Linux with no NXT connected but old handles still open can lead to MATLAB crashing. Using COM_CloseNXT prevents this.
+          o Mixing methods from the NXTMotor class and the function DirectMotorCommand can lead to warnings or other problems.
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows (they do work with Bluetooth on Windows, and with both USB and BT on Linux).
+    * October 6th, 2009
+
+
+	
+RWTH - Mindstorms NXT Toolbox version 4.01
+
+    * New features:
+          o Support for Mac OS (not well tested yet). Requires Mindstorms NXT driver "Fantom" for USB-connections.
+          o New motor control (class NXTMotor) from version 4.00 has proven to be stable
+          o Updated and included ToolboxBenchmark again
+          o New tool ToolboxUpdate checks online for new release (still beta status)
+    * Bugfixes:
+          o Fixed a condition in NXTMotor which could cause the motor to stall during braking (when moving at low speeds with high load/friction and TachoLimit > 0 and ActionAtTachoLimit == 'Brake' or 'HoldBrake')
+          o Disallowed special value 255 for port in DirectMotorCommand (255 for all motors can still be used with NXT_SetOutputState)
+          o The ultrasonic sensor can return invalid or wrong values when polled too frequently (i.e. on fast USB connections). A conditional waiting period was introduced to GetUltrasonic, limiting the maximum polling rate to 50 Hz for this sensor.
+    * Improvements / changes:
+          o Current version of NXC program MotorControl is 2.1 (included with toolbox)
+          o Added short waiting periods (max. 100ms) to OpenUltrasonic, OpenAccelerator, OpenCompass, OpenColor, OpenInfrared to allow those digital sensors to power up and boot properly. Should avoid possible bugs (which have not been observed yet anyway).
+          o HiTechnic Gyro sensor works more accurate now (added start up delay to OpenGyro, improved calibration in CalibrateGyro, GetGyro returns floats instead of rounded integers now)
+          o Internal Bluetooth delay timing accuracy was improved on Windows systems (changed from using etime to tic, toc). Variances in packet transmission delays should be smaller now, overall performance slightly better.
+          o Parameter UseThisNXTMAC of COM_OpenNXTEx can now also contain colons, i.e. both '00:16:12:34:56:78' and '001612345678' are valid
+          o Removed a possible "flood of warnings" in NXTMotor.WaitFor() if NXC program MotorControl was being terminated during execution
+          o NXTMotor display on command line now shows SmoothStart with on / off just as SpeedRegulation (old dispaly was with yes / no)
+          o Updated readme / installation guide, provided more batch scripts for compiling and downloading MotorControl to the NXT
+          o Added examples in motor documentation
+          o Updated documentation in various places
+    * Known bugs and limitations:
+          o This release has milestone status, so there may be remaining bugs, or documentation might be outdated in some places
+          o Tutorials in "Programming Robots", especially about USB connections and motors, are not up-to-date and complete yet.
+          o Mixing methods from the NXTMotor class and the function DirectMotorCommand can lead to warnings or other problems.
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows (they do work with Bluetooth on Windows, and with both USB and BT on Linux).
+    * August 31st, 2009
+
+
+
+RWTH - Mindstorms NXT Toolbox version 4.00 (beta)
+
+    * New features:
+          o Drastically improved motor control through class NXTMotor
+                + Better precision (usually about +/- 1 degree, even under load)
+                + Smooth braking (regulated and with anti-stall-protection)
+                + New property SmoothStart for optional smooth acceleration
+                + New mode 'HoldBrake' for property ActionAtTachoLimit
+    * Improvements / changes:
+          o Syntax of NXC_MotorControl has changed and is not backwards compatible to previous toolbox versions
+          o Overall experience and performance of motor control with class NXTMotor should be better now
+          o Embedded NXC program MotorControl is now released in version 2.0 with new protocol (not backwards compatible to old MotorControl 1.x)
+          o Updated documentation of motor class 
+    * Known bugs and limitations:
+          o This release has beta status, so certain features might not be stable, documentation might be outdated in some places
+          o Status of the new motor control is still experimental, stability when using multiple commands like .WaitFor, .SendToNXT, .Stop frequently cannot yet be guaranteed.
+          o The toolbox programs ToolboxTest and ToolboxBenchmark are not up to date yet and are hence not included in this release.
+          o Mixing methods from the NXTMotor class and the function DirectMotorCommand can lead to warnings or other problems
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows (they do work with Bluetooth on Windows, and with both USB and BT on Linux)
+    * July 20th, 2009
+
+    
+    
+RWTH - Mindstorms NXT Toolbox version 3.00 (beta)
+
+    * New features:
+          o Class NXTMotor (formerly known as NXTmotor) now has new property ActionAtTachoLimit (use instead of BrakeAtTachoLimit)
+          o New function DirectMotorCommand (usage and syntax identical to passing all parameters at once to removed function SendMotorSettings)
+          o New optional argument 'MotorControlFilename' for functions COM_OpenNXT and COM_OpenNXTEx, followed by a custom filename to override the default setting or an empty string to disable launching of the embedded program
+    * Removed features:
+          o Removed automatic Bluetooth connection establishment in COM_OpenNXT / COM_OpenNXTEx (only relevant for Linux)
+          o Removed classic motor commands SendMotorSettings, GetMotorSettings, ResetMotorAngle, WaitForMotor, MotorRotateAbs
+          o Moved classic motor commands to private folder (deprecated): SetMotor, GetMotor, SpeedRegulation, SyncToMotor, SetAngleLimit, SetTurnRatio, SetRampMode, SetMemoryCount, GetMemoryCount
+          o Removed old class NXTmotor's property BrakeAtTachoLimit (use ActionAtTachoLimit now)
+          o Removed old class NXTmotor's property TurnRatio
+          o Removed optional argument 'check' from COM_OpenNXT and COM_OpenNXTEx (checking is implicitely done every time now) 
+    * Improvements / Changes:
+          o Former delays (up to 150ms) in NXC_MotorControl / NXC_ResetErrorCorrection / NXTmotor.SendToNXT have been drastically lowered (to around 25ms), waiting is dynamic now and only occurs if needed
+          o Improved COM_ReadI2C (now detects if a digital sensor was not opened properly)
+          o Return-structs of NXT_GetOutputState and NXT_GetInputValues now contain double datatypes in all fields (conversion from uint8 for certain fields is not necessary anymore)
+          o Slightly improved warnings / error-checking in COM_OpenNXT and COM_OpenNXTEx
+          o Renamend class NXTmotor to NXTMotor (for consistency reasons and to underline new interface)
+          o Renamed embedded NXC program for motor control to MotorControl12.nxc (compiles to MotorControl12.rxe), current version 1.2 was not changed. Using LEGO MINDSTORMS NXT Firmware 1.26 or better is strongly recommended!
+          o Minor documentation updates
+    * Bugfixes:
+          o Fixed instabilities in COM_OpenNXT / COM_OpenNXTEx on Linux (due to automatic Bluetooth connections) by removing this feature
+    * Known bugs and limitations:
+          o This release has beta status, so certain features might not be stable, documentation might be outdated in some places
+          o New system requirements: MATLAB 7.7 (2008b)
+          o The toolbox programs ToolboxTest and ToolboxBenchmark are not up to date yet and are hence not included in this release.
+          o Mixing methods from the NXTMotor class and the function DirectMotorCommand can lead to warnings or other problems
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows (they do work with Bluetooth on Windows, and with both USB and BT on Linux)
+    * July 17th, 2009
+
+
+
+RWTH - Mindstorms NXT Toolbox version 2.04
+
+    *  New Features:
+          o New function NXT_MessageRead (bi-directional communication between NXC programs and MATLAB now supported and successfully tested)
+          o New function CalibrateGyro
+    * Improvements:
+          o Full support for multiple HiTechnic Gyroscopic sensors (even on multiple NXTs), functions OpenGyro and GetGyro updated
+          o Minor documentation updates
+    * Bugfixes:
+          o GetGyro now also checks for validity of sensor data (only applies to prior toolbox version when calling GetGyro straight after OpenGyro via USB on very fast computers)
+          o Fixed a minor issue in NXT_StartProgram (corrected parameter check for maximum program name length)
+    * Known bugs and limitations:
+          o On Linux systems, working with multiple NXTs at a time via several Bluetooth connections can cause problems while opening the NXT handle.
+          o The NXTmotor class requires MATLAB 2008a or better.
+          o Although the NXTmotor class is designed to work together with the embedded NXC program MotorControl.rxe, a compatibility mode for direct commands is implemented (providing the same functionality as known from the classic motor commands).
+          o The method NXC_MotorControl (also affecting NXTmotor's method SendToNXT) contains a forced waiting period of 75 ms both before and after sending the actual command, leading to a total pause of 150 ms when using this method. The time out period will probably be reduced or even removed in future versions.
+          o Mixing methods from the NXTmotor class and classic motor commands (such as SetMotor, SendMotorSettings, etc.) can lead to warnings or other problems.
+          o Automatic Bluetooth connection establishing works only on Linux and may have certain limitations or cause problems (especially when working with multiple NXTs).
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows.
+    * April 17th, 2009
+
+
+
+RWTH - Mindstorms NXT Toolbox version 2.03 (stable)
+
+    * New Features:
+          o Support for new sensors:
+                + HiTechnic Color Sensor (digital)
+                + HiTechnic Gyroscopic Sensor (analog)
+                + Codatex RFID Sensor (digital)
+          o Added private low-level function waitUntilI2CReady to support implementation of complex I2C sensors
+    * Improvements:
+          o Minor documentation updates
+    * Bugfixes:
+          o Fixed an issue with very fast computers and USB connections, where retrieving analog sensor data directly after opening those analog sensors could provide invalid values (for a couple of milliseconds). Functions GetLight, GetSound and GetSwitch are fixed now.
+          o Fixed a bug where NXT_MessageWrite did not work properly when the NXT default handle was not set.
+          o Fixed a bug in both NXC_MotorControl and NXTmotor's method SendToNXT that would cause an error when passing a custom NXT-handle to those functions.
+    * Known bugs and limitations:
+          o On Linux systems, working with multiple NXTs at a time via several Bluetooth connections can cause problems while opening the NXT handle.
+          o Currently, only one HiTechnic Gyro-Sensor is supported globally at a time. Calibration / offset-correction happens implicitly when calling OpenGyro, so the sensor should be at rest at this point.
+          o The new NXTmotor class requires MATLAB 2008a or better.
+          o Although the NXTmotor class is designed to work together with the new embedded NXC program MotorControl.rxe, a compatibility mode for direct commands is implemented (providing the same functionality as known from the classic motor commands).
+          o The method NXC_MotorControl (also affecting NXTmotor's method SendToNXT) contains a forced waiting period of 75 ms both before and after sending the actual command, leading to a total pause of 150 ms when using this method. The time out period will probably be reduced or even removed in future versions.
+          o Mixing methods from the NXTmotor class and classic motor commands (such as SetMotor, SendMotorSettings, etc.) can lead to warnings or other problems.
+          o The new automatic Bluetooth connection establishing works only on Linux and has not thoroughly been tested yet. Certain sudo-rights might be required.
+          o Programs working with toolbox version 1.00 are not working out of the box with version 2.00 or better. The code for opening and closing connections to the NXT brick has to be updated (programs written for version 2.00beta or 2.00 do not have to be modified). See help-section "Guideline for new v2.00 features".
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows.
+          o Old limitations from version 1.00 regarding hardware compatibility and problems with various Bluetooth adapters still apply.
+    * January 23rd, 2009
+
+    
+RWTH - Mindstorms NXT Toolbox version 2.02
+
+    * New Features:
+          o New function NXC_ResetErrorCorrection
+    * Improvements:
+          o Improved new NXTmotor class in various places (more stable now)
+          o Improved embedded NXC program MotorControl to work with NXC_ResetErrorCorrection (current version is 1.1)
+          o Updated documentation
+    * Bugfixes:
+          o Fixed a bug in NXC_MotorControl (also affecting NXTmotor's method SendToNXT) which could cause certain motor commands to be dropped
+          o Above fix also resolves a situation where NXTmotor's method WaitFor (as well as classic function WaitForMotor) could return before the motor was ready (or had even started)
+          o Fixed a condition in NXTmotor's method SendToNXT which now resets error correction every time for every command, no matter which TachoLimit is used.
+    * Known bugs and limitations:
+          o The new NXTmotor class requires MATLAB 2008a or better.
+          o Although the NXTmotor class is designed to work together with the new embedded NXC program MotorControl.rxe, a compatibility mode for direct commands is implemented (providing the same functionality as known from the classic motor commands).
+          o The method NXC_MotorControl (also affecting NXTmotor's method SendToNXT) contains a forced waiting period of 75 ms both before and after sending the actual command, leading to a total pause of 150 ms when using this method. The time out period will probably be reduced or even removed in future versions.
+          o Mixing methods from the NXTmotor class and classic motor commands (such as SetMotor, SendMotorSettings, etc.) can lead to warnings or other problems.
+          o The new automatic Bluetooth connection establishing works only on Linux and has not thoroughly been tested yet. Certain sudo-rights might be required.
+          o Programs working with toolbox version 1.00 are not working out of the box with version 2.00 or better. The code for opening and closing connections to the NXT brick has to be updated (programs written for version 2.00beta or 2.00 do not have to be modified). See help-section "Guideline for new v2.00 features".
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows.
+          o Old limitations from version 1.00 regarding hardware compatibility and problems with various Bluetooth adapters still apply.
+    * November 12th, 2008
+
+    
+RWTH - Mindstorms NXT Toolbox version 2.01
+
+    * New Features:
+          o New precise motor control through embedded NXC program
+          o New class NXTmotor to easily manage and control motors (requires MATLAB 2008a)
+          o New function NXC_MotorControl as direct interface for advanced motor regulation
+          o New function NXT_GetCurrentProgramName
+    * Improvements:
+          o COM_OpenNXT and COM_OpenNXTEx can now automatically establish a physical Bluetooth connection on Linux systems (controlled by new inifile parameters)
+          o Adapted COM_MakeBTConfigFile to support new parameters NXTName or NXTMAC for the inifile (enables automatic Bluetooth connection in Linux)
+    * Bugfixes:
+          o Fixed a bug (introduced with ver 2.00) in SendMotorSettings that caused the long-syntax version (with all parameters in one call) to have no effect
+          o Fixed a minor bug in private function getReplyLengthFromCmdByte that would cause NXT_GetCurrentProgramName to fail over USB in Windows
+    * Known bugs and limitations:
+          o The new NXTmotor class requires MATLAB 2008a or better.
+          o Although the NXTmotor class is designed to work together with the new embedded NXC program MotorControl.rxe, a compatibility mode for direct commands is implemented (providing the same functionality as known from the classic motor commands).
+          o Mixing methods from the NXTmotor class and classic motor commands (such as SetMotor, SendMotorSettings, etc.) can lead to warnings or other problems.
+          o The new automatic Bluetooth connection establishing works only on Linux and has not thoroughly been tested yet. Certain sudo-rights might be required.
+          o Programs working with toolbox version 1.00 are not working out of the box with version 2.00 or better. The code for opening and closing connections to the NXT brick has to be updated (programs written for version 2.00beta or 2.00 do not have to be modified). See help-section "Guideline for new v2.00 features".
+          o System functions, especially I/O Map Module functions, do not work with USB-connections in Windows.
+          o Old limitations from version 1.00 regarding hardware compatibility and problems with various Bluetooth adapters still apply.
+    * October 28th, 2008
+
+    
+RWTH - Mindstorms NXT Toolbox version 2.00 (stable)
+
+    * New Features:
+          o Support for new digital sensors:
+                + HiTechnic Infrared Seeker
+                + HiTechnic Acceleration Sensor
+                + HiTechnic Magnetic Compass Sensor
+          o New function COM_ReadI2C for easy implementation of more digital sensors
+          o New utility OptimizeToolboxPerformance to use binary versions of some lowlevel functions
+          o New tools for benchmarking and testing, more demos and examples
+          o Added an optional NXT-handle argument to almost all high-level functions (easier multi-NXT support)
+          o Added direct command NXT_MessageWrite for access to mailboxes and inter-NXT Bluetooth communication
+    * Improvements:
+          o Improved I2C performance of digital sensors (including ultrasound) by about 100%
+          o Various lowlevel performance improvements in different functions
+          o Overall performance after calling the tool OptimizeToolboxPerformance up to 3 times faster (depending on machine)
+          o Updated GUI_WatchMotorState to new toolbox release
+          o Updated GUI_WatchSensor to new toolbox release, now also supports Ultrasound (and US-compatible digital sensors)
+          o Updated libusb and fantom library prototype files to new MATLAB 2008a syntax.
+          o Updated documentation
+          o New toolbox layout
+    * Bugfixes:
+          o Fixed a bug in ResetMotorAngle that would cause an error
+          o Fixed a bug in SwitchLamp that caused it to not work properly
+          o Fixed a bug that lead to errors when using NXT system commands with USB in Linux
+          o Fixed a condition with unclear warnings in COM_OpenNXTEx
+    * Known bugs and limitations:
+          o Programs working with toolbox version 1.00 are not working out of the box with version 2.00. The code for opening and closing connections to the NXT brick has to be updated (programs written for version 2.00beta do not have to be modified). See help-section "Guideline for new v2.00 features".
+          o System functions, especially the new I/O Map Module functions, do not work with USB-connections in Windows.
+          o Old limitations from version 1.00 regarding hardware compatibility and problems with various Bluetooth adapters still apply.
+    * September 25th, 2008
+
+    
+RWTH - Mindstorms NXT Toolbox version 2.00beta
+
+    * New Features:
+          o Added support for USB communication to the NXT brick (for both Windows and Linux systems):
+            Performance about 10 times faster than with Bluetooth communication.
+          o Restructured communication layer: New functions for Bluetooth and USB communication.
+          o Full support for multiple NXTs from one program, mixed connections via Bluetooth and USB are supported.
+          o New NXT-handle holds useful information about the currently connected device.
+          o Added "snapshot mode" for ultrasonic sensor: Send single pings and record multiple echos.
+            (See functions OpenUltrasonic, USMakeSnapshot, and USGetSnapshotResults)
+          o Added support for I/O Map Module access of NXT internal registers: See MAP-functions.
+          o New function DebugMode for easier access to debug messages generated by textOut.
+    * Bug fixes and improvements:
+          o Performance improvement (roughly factor 10) of lowlevel functions wordbytes2dec and dec2wordbytes.
+          o Fixed a minor bug in SpeedRegulation that occured when working with value 255 for all motors.
+          o Added and rewrote some internal helper / lowlevel functions.
+          o Added and rewrote some error / warning messages.
+    * Files removed:
+          o Old BT-functions (Bluetooth) have now been replaced by COM-Functions that also support USB-connections.
+          o Removed some private lowlevel functions that were not needed anymore.
+    * Known bugs and limitations:
+          o Current documentation might be outdated (still from version 1.00 at various places).
+          o Programs working with toolbox version 1.00 are not working out of the box with version 2.00beta. The code for opening and closing connections to the NXT brick has to be updated.
+          o System functions, especially the new I/O Map Module functions, do not work with USB-connections in Windows.
+          o Under heavy load / small intervals between successive sensor polls (when using USB connections), the NXT might send an error message back to the host computer, leading to a warning. This was not reproducable realiably.
+          o Old limitations from version 1.00 regarding hardware compatibility and problems with various Bluetooth adapters still apply.
+    * July 17th, 2008
+
+    
+RWTH - Mindstorms NXT Toolbox v1.00
+
+    * New Features:
+          o Extended and updated toolbox documentation.
+          o Functions features based on modules release-1.00 (January 22nd, 2008)
+                + Features added:
+                      # Warning- and Error-identifiers for all warnings and errors
+                      # Contents.m (Toolbox and version identification)
+                      # Performance improvements in various private lowlevel functions
+                + Features changed:
+                      # readFromIniFile.m (completely new rewritten code, more reliable, better understandable, GPL license)
+                      # Changed, improved and added lots of comments
+                      # Changed default Bluetooth parameters to lower (i.e. faster) values
+                      # New version naming scheme: x.yy, where x = major version (ensuring backwards compatibility) and yy = release number, e.g. 1.01 
+                + Bugs fixed:
+    * January 24th, 2008
+
+    
+RWTH - Mindstorms NXT Toolbox v0.3
+
+    * New Features:
+          o Extended syntax help documentation.
+          o Removed syntax lightning macros in help descriptions.
+          o Functions features based on modules release-0.3.5 (November 20th, 2007)
+                + Features added:
+                      # BT_MakeConfigFile.m (Add timeout parameter for ini file in GUI)
+                      # BT_OpenHandle.m (Considers timeout parameter of ini file or set default value)
+                + Bugs fixed:
+                      # BT_SetDefaultHandle.m (Correct comments)
+                      # GetSound.m (Correct comments)
+                      # GetUltrasonic.m (Correct comments)
+                      # SendMotorSettings.m (Handles synchronization and speed regulation enable and disable issues)
+                      # SpeedRegulation.m (Speedregulation('off') does not reset all synchronization parameters anymore)
+                      # SyncToMotor.m (Handles synchronization and speed regulation enable and disable issues (add warning))
+    * November 26th, 2007
+
+    
+RWTH - Mindstorms NXT Toolbox v0.2
+
+    * New Features:
+          o Extended syntax help documentation.
+          o Functions features based on modules release-0.3.4 (October 16th, 2007)
+                + Files added:
+                      # MotorRotateAbs.m (function to rotate an absolute angle)
+                + Features added:
+                      # Add MATLAB conform help documentation for each file
+                      # BT_SendPacket display the hexadecimal debug output in a better way
+                + Bugs fixed:
+                      # NXT_StopProgram.m (No file name is needed)
+                      # All motor functions (with using SetMotor(255)) (NXT_SetOutPutState.m, SendMotorSettings.m, SetMotor.m, SetPower.m, SpeedRegulation.m)
+                      # SwitchLamp.m (Power is really turned off and ist working for all lamps as well (255))
+    * October 16th, 2007
+
+    
+RWTH - Mindstorms NXT Toolbox v0.1
+
+    * New Features:
+          o First toolbox version
+          o Functions features based on modules release-0.3.3 (October 7th, 2007)
+                + Files added:
+                      # NXT_StartProgram.m (Start an embedded program on the NXT Brick)
+                      # NXT_StopProgram.m (Stop an embedded program on the NXT Brick)
+                + Files removed:
+                      # NXT_RequestBatteryLevel.m
+                      # NXT_CollectBatteryLevel.m
+                      # NXT_RequestInputValues.m
+                      # NXT_CollectInputValues.m
+                      # NXT_RequestOutputValues.m
+                      # NXT_CollectOutputValues.m
+                      # NXT_LSRequestRead.m
+                      # NXT_LSCollectRead.m
+                      # NXT_LSRequestStatus.m
+                      # NXT_LSCollectStatus.m
+                + Features added:
+                      # BT_SendPacket.m (Add display Bluetooth packet content with textOut)
+                      # NXT_GetBatteryLevel.m (Add NXT_RequestBatteryLevel.m and NXT_CollectBatteryLevel.m functions as subfunctions)
+                      # NXT_GetInputValues.m (Add NXT_RequestInputValues.m and NXT_CollectInputValues.m functions as subfunctions)
+                      # NXT_GetOutputValues.m (Add NXT_RequestOutputValues.m and NXT_CollectOutputValues.m functions as subfunctions)
+                      # NXT_LSRead.m (Add NXT_LSRequestRead.m and NXT_LSCOllectRead.m functions as subfunctions)
+                      # NXT_LSGetStatus.m (Add NXT_LSRequestStatus. and NXT_LSCollectStatus.m functions as subfunctions)
+                      # SendMotorSettings.m (Add optional function parameters to send a motor command as one command. Functions arguments are: Port, SyncToMotor, Power, AngleLimit, SpeedRegulation, TurnRatio, RampMode.)
+                      # textOut.m (Set DisableScreenOut to true as default value!)
+                + Bugs fixed:
+                      # SendMotorSettings.m (If SetPower = 0 the memory counter is not resetted anymore)
+                      # BT_OpenHandle.m (Removed double fopen command under LINUX)
+                      # BT_SendPacket.m (Replaced tic-toc commands with clock and etime)
+                      # BT_CollectPacket.m (Replaced tic-toc commands with clock and etime)
+    * October 7th, 2007

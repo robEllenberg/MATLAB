@@ -1,0 +1,341 @@
+//#!C
+/*
+%
+% This component of MotorControl provides different low level helper functions
+% and wrappers for various NXC motor commands etc...
+%
+% Signature
+%   Author: Linus Atorf (see AUTHORS)
+%   Date: 2009/04/02
+%   Copyright: 2007-2009, RWTH Aachen University
+%
+%
+% ***********************************************************************************************
+% *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *
+% *                                                                                             *
+% *  The RWTH - Mindstorms NXT Toolbox is free software: you can redistribute it and/or modify  *
+% *  it under the terms of the GNU General Public License as published by the Free Software     *
+% *  Foundation, either version 3 of the License, or (at your option) any later version.        *
+% *                                                                                             *
+% *  The RWTH - Mindstorms NXT Toolbox is distributed in the hope that it will be useful,       *
+% *  but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS  *
+% *  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.             *
+% *                                                                                             *
+% *  You should have received a copy of the GNU General Public License along with the           *
+% *  RWTH - Mindstorms NXT Toolbox. If not, see <http://www.gnu.org/licenses/>.                 *
+% ***********************************************************************************************
+*/
+
+#ifndef __MOTORFUNCTIONS_NXC__
+#define __MOTORFUNCTIONS_NXC__
+
+
+
+//#define MAXTOTALBRAKINGTIME 1000
+/*
+//TODO lower this value a bit for faster responseness?
+#define MOVEMENTCHECKTIME 120
+//TODO set this to 0 for better accuracy?
+#define MAXMOVEMENTPERCHECK 1
+*/
+
+#define MOTORSTOPPED_TIMEOUT 700 //in ms
+//TODO this can / should be lowered! very important to reduce
+// total execution time of motor controlling task!
+// this period is basically "wasted" at the end of EACH AND EVERY SINGLE
+// movement, so it really is a sort of "full blackout" for a motor...
+#define MOTORSTOPPED_RESTINGPERIOD 250 //in ms
+
+
+
+
+// former inline function as macro
+#define MotorIsRunning(_port) ((MotorRunState(_port) != OUT_RUNSTATE_IDLE) && (MotorPower(_port) != 0) && (MotorMode(_port) & OUT_MODE_MOTORON))
+
+
+/*
+inline bool MotorIsRunning(const byte &port) {
+    if ((MotorRunState(port) != OUT_RUNSTATE_IDLE) && (MotorPower(port) != 0) && (MotorMode(port) & OUT_MODE_MOTORON)) {
+        return true;
+    } else {
+        return false;
+    }//end if
+}//end function
+*/
+
+
+
+safecall void MotorBrake(const byte &port)   {
+// Similar to "StopMotor(port, 'brake')", enables active braking for a motor...
+
+    //MotorCmd(port, 0, 0, 0, true, false);
+    /*
+    byte flags = UF_UPDATE_MODE + UF_UPDATE_SPEED; // + UF_UPDATE_RESET_COUNT;
+
+    byte mode = OUT_MODE_BRAKE + OUT_MODE_MOTORON + OUT_MODE_REGULATED;
+    byte reg  = OUT_REGMODE_SPEED;
+    byte state = OUT_RUNSTATE_RUNNING;
+    */
+    
+    SetOutput(port, Power, 0,
+                    OutputMode,  OUT_MODE_BRAKE + OUT_MODE_MOTORON + OUT_MODE_REGULATED,
+                    RegMode,     OUT_REGMODE_SPEED,
+                    RunState,    OUT_RUNSTATE_RUNNING,
+                    UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED); // + UF_UPDATE_TACHO_LIMIT);
+
+}//end MotorBrake
+
+safecall void MotorBrake2(const byte &port, const byte &port2)  {
+    SetOutput(port, Power, 0,
+                    OutputMode,  OUT_MODE_BRAKE + OUT_MODE_MOTORON + OUT_MODE_REGULATED,
+                    RegMode,     OUT_REGMODE_SPEED,
+                    RunState,    OUT_RUNSTATE_RUNNING,
+                    UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED); // + UF_UPDATE_TACHO_LIMIT);
+                    
+    SetOutput(port2, Power, 0,
+                    OutputMode,  OUT_MODE_BRAKE + OUT_MODE_MOTORON + OUT_MODE_REGULATED,
+                    RegMode,     OUT_REGMODE_SPEED,
+                    RunState,    OUT_RUNSTATE_RUNNING,
+                    UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED); // + UF_UPDATE_TACHO_LIMIT);
+
+}//end MotorBrake2
+
+
+
+/*
+safecall void MotorBrakeTest(byte port)   {
+// Similar to "StopMotor(port, 'brake')", enables active braking for a motor...
+
+    //MotorCmd(port, 0, 0, 0, true, false);
+
+    byte flags = UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT; // + UF_UPDATE_RESET_COUNT;
+
+    byte mode = OUT_MODE_BRAKE + OUT_MODE_MOTORON + OUT_MODE_REGULATED;
+    byte reg  = OUT_REGMODE_SPEED;
+    byte state = OUT_RUNSTATE_RUNNING;
+
+    SetOutput(port, Power, 0, TachoLimit, 0, OutputMode, mode, RegMode, reg, RunState, state, UpdateFlags, flags);
+
+}//end MotorBrake
+
+safecall void MotorBrakeSoft(byte port)   {
+// Similar to "StopMotor(port, 'brake')", enables active braking for a motor...
+
+    //MotorCmd(port, 0, 0, 0, true, false);
+
+    byte flags = UF_UPDATE_MODE + UF_UPDATE_SPEED; // + UF_UPDATE_RESET_COUNT;
+
+    byte mode = OUT_MODE_BRAKE + OUT_MODE_MOTORON;
+    byte reg  = OUT_REGMODE_IDLE;
+    byte state = OUT_RUNSTATE_RUNNING;
+
+    SetOutput(port, Power, 0, OutputMode, mode, RegMode, reg, RunState, state, UpdateFlags, flags);
+
+}//end MotorBrake
+*/
+
+
+safecall void MotorOff(const byte &port)   {
+// Similar to "StopMotor(port, 'off')", turns off power to a motor, enabling COAST mode...
+
+    //MotorCmd(port, 0, 0, 0, true, false);
+
+    /*
+    byte flags = UF_UPDATE_MODE + UF_UPDATE_SPEED; // + UF_UPDATE_RESET_COUNT;
+
+    byte mode = OUT_MODE_COAST;
+    byte reg  = OUT_REGMODE_IDLE;
+    byte state = OUT_RUNSTATE_IDLE;
+    */
+
+    SetOutput(port, Power, 0, OutputMode, OUT_MODE_COAST, RegMode, OUT_REGMODE_IDLE, RunState, OUT_RUNSTATE_IDLE, UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED);
+
+}//end MotorOff
+
+
+safecall void MotorOff2(const byte &port, const byte &port2)   {
+
+    SetOutput(port, Power, 0, OutputMode, OUT_MODE_COAST, RegMode, OUT_REGMODE_IDLE, RunState, OUT_RUNSTATE_IDLE, UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED);
+    SetOutput(port2, Power, 0, OutputMode, OUT_MODE_COAST, RegMode, OUT_REGMODE_IDLE, RunState, OUT_RUNSTATE_IDLE, UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED);
+
+}//end MotorOff
+
+
+
+
+
+
+safecall void MotorCmdSingle(const byte &port, const int &pwr, const long &tacholimit, const bool &speedreg) {
+
+    byte mode = OUT_MODE_BRAKE + OUT_MODE_MOTORON;
+    byte reg  = OUT_REGMODE_IDLE;
+
+    if (speedreg) {
+        mode = mode + OUT_MODE_REGULATED;
+        reg  = OUT_REGMODE_SPEED;
+    }//end if
+
+
+    SetOutput(port, Power, pwr, TachoLimit, tacholimit, OutputMode, mode, RegMode, reg, RunState, OUT_RUNSTATE_RUNNING, UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT);
+}//end MotorCmdSingle
+
+safecall void MotorCmdSingleReset(const byte &port, const int &pwr, const long &tacholimit, const bool &speedreg) {
+
+    byte mode = OUT_MODE_BRAKE + OUT_MODE_MOTORON;
+    byte reg  = OUT_REGMODE_IDLE;
+
+    if (speedreg) {
+        mode = mode + OUT_MODE_REGULATED;
+        reg  = OUT_REGMODE_SPEED;
+    }//end if
+
+
+    SetOutput(port, Power, pwr, TachoLimit, tacholimit, OutputMode, mode, RegMode, reg, RunState, OUT_RUNSTATE_RUNNING, UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT + UF_UPDATE_RESET_COUNT);
+}//end MotorCmdSingleReset
+
+
+safecall void MotorCmdDouble(const byte &port, const int &pwr, const long &tacholimit, const byte &port2) {
+
+    SetOutput(  port, Power, pwr, TachoLimit, tacholimit,
+                OutputMode, OUT_MODE_MOTORON + OUT_MODE_BRAKE + OUT_MODE_REGULATED,
+                RegMode, OUT_REGMODE_SYNC,
+                RunState, OUT_RUNSTATE_RUNNING,
+                UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT);
+                
+    SetOutput(  port2, Power, pwr, TachoLimit, tacholimit,
+                OutputMode, OUT_MODE_MOTORON + OUT_MODE_BRAKE + OUT_MODE_REGULATED,
+                RegMode, OUT_REGMODE_SYNC,
+                RunState, OUT_RUNSTATE_RUNNING,
+                UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT);
+}//end MotorCmd
+
+
+safecall void MotorCmdDoubleReset(const byte &port, const int &pwr, const long &tacholimit, const byte &port2) {
+
+    SetOutput(  port, Power, pwr, TachoLimit, tacholimit,
+                OutputMode, OUT_MODE_MOTORON + OUT_MODE_BRAKE + OUT_MODE_REGULATED,
+                RegMode, OUT_REGMODE_SYNC,
+                RunState, OUT_RUNSTATE_RUNNING,
+                UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT + UF_UPDATE_RESET_COUNT + UF_UPDATE_RESET_BLOCK_COUNT);
+
+    SetOutput(  port2, Power, pwr, TachoLimit, tacholimit,
+                OutputMode, OUT_MODE_MOTORON + OUT_MODE_BRAKE + OUT_MODE_REGULATED,
+                RegMode, OUT_REGMODE_SYNC,
+                RunState, OUT_RUNSTATE_RUNNING,
+                UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT + UF_UPDATE_RESET_COUNT + UF_UPDATE_RESET_BLOCK_COUNT);
+                
+}//end MotorCmd
+
+
+
+
+
+safecall void UpdatePower(const byte &port, const int &pwr) {
+    SetOutput(port, Power, pwr, UpdateFlags, UF_UPDATE_SPEED);
+}//end UpdatePower
+
+safecall void UpdatePower2(const byte &port, const int &pwr, const int &port2) {
+    SetOutput(port, Power, pwr, UpdateFlags, UF_UPDATE_SPEED);
+    SetOutput(port2, Power, pwr, UpdateFlags, UF_UPDATE_SPEED);
+}//end UpdatePower2
+
+safecall void UpdatePowerAndEnableSpeedReg(const byte &port, const int &pwr) {
+    SetOutput(port, Power, pwr, OutputMode, OUT_MODE_BRAKE + OUT_MODE_MOTORON + OUT_MODE_REGULATED, RegMode, OUT_REGMODE_SPEED, UpdateFlags, UF_UPDATE_SPEED + UF_UPDATE_MODE);
+}//end UpdatePowerAndEnableSpeedReg
+
+
+
+safecall void DisableSpeedRegWhithMotorOn(const byte &port) {
+    SetOutput(port, OutputMode, OUT_MODE_BRAKE + OUT_MODE_MOTORON, RegMode, OUT_REGMODE_IDLE, UpdateFlags, UF_UPDATE_MODE);
+}//end DisableSpeedRegWhithMotorOn
+
+safecall void EnableSpeedRegWhithMotorOn(const byte &port) {
+    SetOutput(port, OutputMode, OUT_MODE_BRAKE + OUT_MODE_MOTORON + OUT_MODE_REGULATED, RegMode, OUT_REGMODE_SPEED, UpdateFlags, UF_UPDATE_MODE);
+}//end DisableSpeedRegWhithMotorOn
+
+
+
+
+safecall void ResetErrorCorrection(const byte &port) {
+// Resets TachoCount of a motor, which also resets internal error correction memory. (But not the other 2 counters)
+
+    SetOutput(port, UpdateFlags, UF_UPDATE_RESET_COUNT);
+
+}//end ResetErrorCorrection
+
+
+
+
+safecall void ResetErrorCorrectionAndBlockCount(const byte &port) {
+// Resets TachoCount of a motor, which also resets internal error correction memory.
+// also resets BlockTachoCount with just one single call. Needed for sync driving. If not
+// reset, bot will "re-align" itself to last turnratio, which is usually 0, so in this
+// case, bot will turn to drive straight again. Nice feature if wanted, but usually
+// unexpected and then looks like "dancing" or totally chaotic movements
+
+    SetOutput(port, UpdateFlags, UF_UPDATE_RESET_COUNT + UF_UPDATE_RESET_BLOCK_COUNT);
+
+}//end ResetErrorCorrection
+
+
+
+
+safecall void DebugPrintPower(byte port) {
+    string tmp;
+    tmp = NumToStr(MotorPower(port));
+    tmp = StrCat("Power=", tmp);
+    TextOut(0,LCD_LINE2, tmp);
+}//end
+
+
+
+
+
+
+
+/*
+inline void MotorCmd(byte port, int pwr, long tacholimit, int turnratio, bool speedreg, bool sync) {
+
+    byte mode = OUT_MODE_BRAKE + OUT_MODE_MOTORON;
+    byte reg  = OUT_REGMODE_IDLE;
+
+    if (speedreg) {
+        mode = mode + OUT_MODE_REGULATED;
+        reg  = OUT_REGMODE_SPEED;
+    }//end if
+
+    if (sync) {
+        mode = mode + OUT_MODE_REGULATED;
+        reg  = OUT_REGMODE_SYNC;
+    }//end if
+
+    SetOutput(port, Power, pwr, TachoLimit, tacholimit, TurnRatio, turnratio, OutputMode, mode, RegMode, reg, RunState, OUT_RUNSTATE_RUNNING, UpdateFlags, UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT);
+}//end MotorCmd
+
+
+
+safecall void MotorCmdEx(byte port, int pwr, long tacholimit, int turnratio, bool speedreg, bool sync, byte runstate) {
+
+
+    byte flags = UF_UPDATE_MODE + UF_UPDATE_SPEED + UF_UPDATE_TACHO_LIMIT; // + UF_UPDATE_RESET_COUNT;
+
+    byte mode = OUT_MODE_BRAKE + OUT_MODE_MOTORON;
+    byte reg  = OUT_REGMODE_IDLE;
+    byte state = runstate;
+
+    if (speedreg) {
+        mode = mode + OUT_MODE_REGULATED;
+        reg  = OUT_REGMODE_SPEED;
+    }//end if
+
+    if (sync) {
+        mode = mode + OUT_MODE_REGULATED;
+        reg  = OUT_REGMODE_SYNC;
+    }//end if
+
+    SetOutput(port, Power, pwr, TachoLimit, tacholimit, TurnRatio, turnratio, OutputMode, mode, RegMode, reg,  RunState, state, UpdateFlags, flags);
+}//end MotorCmdEx
+*/
+
+
+#endif

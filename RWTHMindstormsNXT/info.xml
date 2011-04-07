@@ -1,0 +1,67 @@
+<productinfo
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="optional">
+<?xml-stylesheet type="text/xsl" href="optional"?>
+
+<matlabrelease>14</matlabrelease>
+<name>RWTH - Mindstorms NXT</name>
+<type>toolbox</type>
+<icon>mindstorms_16x16x256.gif</icon>
+<help_location>doc</help_location>
+
+<list>
+
+
+<!-- 
+<listitem>
+<label>Watch Sensor GUI</label>
+<callback>GUI_WatchSensor</callback>
+<icon>$toolbox/matlab/icons/figureicon.gif</icon>
+</listitem>
+
+<listitem>
+<label>Watch Motor State GUI</label>
+<callback>GUI_WatchMotorState</callback>
+<icon>$toolbox/matlab/icons/figureicon.gif</icon>
+</listitem>
+-->
+
+<listitem>
+  <label>Help</label>
+  <callback>doc RWTHMindstormsNXT</callback>
+  <icon>$toolbox/matlab/icons/book_mat.gif</icon>
+</listitem>
+
+<listitem>
+  <label>RWTH - Mindstorms NXT Toolbox - Official Web Page</label>
+  <callback>web http://www.mindstorms.rwth-aachen.de -browser;</callback>
+  <icon>$toolbox/matlab/icons/webicon.gif</icon>
+</listitem>
+
+<listitem>
+  <label>RWTH Project - MATLAB meets LEGO Mindstorms -</label>
+  <callback>web http://www.lfb.rwth-aachen.de/mindstorms -browser;</callback>
+  <icon>$toolbox/matlab/icons/webicon.gif</icon>
+</listitem>
+
+<listitem>
+  <label>RWTH - Institute of Imaging and Computer Vision</label>
+  <callback>web http://www.lfb.rwth-aachen.de -browser;</callback>
+  <icon>$toolbox/matlab/icons/webicon.gif</icon>
+</listitem>
+
+<listitem>
+  <label>RWTH Aachen University</label>
+  <callback>web http://www.rwth-aachen.de -browser;</callback>
+  <icon>$toolbox/matlab/icons/webicon.gif</icon>
+</listitem>
+
+<listitem>
+<label>LEGO Mindstorms NXT - Official Web Page</label>
+<callback>web http://www.mindstorms.com -browser;</callback>
+<icon>$toolbox/matlab/icons/webicon.gif</icon>
+</listitem>
+
+</list>
+
+</productinfo>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<demos>
+
+<name>RWTH - Mindstorms NXT Toolbox</name>
+<type>toolbox</type>
+<icon>$toolbox/matlab/icons/matlabicon.gif</icon>
+<description>
+The RWTH - Mindstorms NXT Toolbox provides MATLAB functions to control LEGO Mindstorms NXT robots via USB or a wireless Bluetooth connection.
+</description>
+
+<demosection>
+  <label>Examples</label>
+  <demoitem>
+    <label>Play A Tone: Example to play a tone on the NXT brick and retrieve the current battery level.</label>
+    <type>M-file</type>
+    <callback>Example_1_PlayTone.m</callback>
+    <file>doc/examples/Example_1_PlayTone.html</file>
+  </demoitem>
+  <demoitem>
+    <label>Read Sound Sensor: Example to read the sound sensor value in db.</label>
+    <type>M-file</type>
+    <callback>Example_2_ReadSoundSensor.m</callback>
+    <file>doc/examples/Example_2_ReadSoundSensor.html</file>
+  </demoitem>
+  <demoitem>
+    <label>Drive Around Table: In this little demo, our bot drives a square on the floor around a well known table.</label>
+    <type>M-file</type>
+    <callback>Example_3_DriveAroundTable_MotorClass.m</callback>
+    <file>doc/examples/Example_3_DriveAroundTable_MotorClass.html</file>
+  </demoitem>
+  <demoitem>
+    <label>Next Generation Ultrasound: This script demonstrates the results of the ultrasound "snapshot mode"!</label>
+    <type>M-file</type>
+    <callback>Example_4_NextGenerationUltrasound.m</callback>
+    <file>doc/examples/Example_4_NextGenerationUltrasound.html</file>
+  </demoitem>
+  <demoitem>
+    <label>Move Up And Down: Makes a motor precisely move back and forth 10 times</label>
+    <type>M-file</type>
+    <callback>Example_5_MoveUpAndDown.m</callback>
+    <file>doc/examples/Example_5_MoveUpAndDown.html</file>
+  </demoitem>
+</demosection>
+
+ <demosection>
+  <label>GUIs</label>
+   <demoitem>
+      <label>Watch Sensor GUI</label>
+      <type>M-file</type>
+      <callback>GUI_WatchSensor.m</callback>
+      <file>doc/tools/GUI_WatchSensor.html</file>
+   </demoitem>
+   <demoitem>
+      <label>Watch Motor State GUI</label>
+      <type>M-file</type>
+      <callback>GUI_WatchMotorState.m</callback>
+      <file>doc/tools/GUI_WatchMotorState.html</file>
+   </demoitem>
+   
+ </demosection>
+
+<demosection>
+  <label>Tools</label>
+  <demoitem>
+    <label>Toolbox Benchmark: This script calls and times some basic toolbox functions.</label>
+    <type>M-file</type>
+    <callback>ToolboxBenchmark.m</callback>
+    <file>doc/tools/ToolboxBenchmark.html</file>
+  </demoitem>
+  <demoitem>
+    <label>Toolbox Test: This script tries to call as many toolbox functions as (reasonably) possible.</label>
+    <type>M-file</type>
+    <callback>ToolboxTest.m</callback>
+    <file>doc/tools/ToolboxTest.html</file>
+  </demoitem>
+  <demoitem>
+    <label>Toolbox Update: Shows the local installed toolbox version and gets remote update information from the toolbox SVN server.</label>
+    <type>M-file</type>
+    <callback>ToolboxUpdate.m</callback>
+    <file>doc/tools/ToolboxUpdate.html</file>
+  </demoitem>
+</demosection>
+
+
+</demos>

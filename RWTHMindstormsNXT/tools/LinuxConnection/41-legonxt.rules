@@ -1,0 +1,2 @@
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", SYSFS{idVendor}=="0694", SYSFS{idProduct}=="0002", MODE="0660", SYMLINK+="legonxt-%k", GROUP="legonxt"
+KERNEL=="rfcomm[0-9]*", MODE="0660", GROUP="legonxt"

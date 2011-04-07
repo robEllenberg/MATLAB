@@ -1,0 +1,918 @@
+//#!C
+/*
+% The NXT Program MotorControl enables precise motor movement via direct
+% commands. It listens to "NXT BT messages", interprets their content (own user-
+% defined "protocol", if you will), and carries out highly precise motor actions
+% in a different thread for each motor, allowing the upper level program (in
+% this case, MATLAB) to carry on with execution...
+%
+% See also: http://www.mindstorms.rwth-aachen.de/trac/wiki/MotorControl
+%
+% CHANGELOG:
+%
+% * Version 2.2, 2010/09/14
+%   First released with toolbox version 4.04
+%   - Commented dead code in case compiler optimization doesn't find it
+%   - No real code changes
+%   - Version to be recompiled with newer NBC/NXC compiler versions,
+%     as some multi-threading / optimization bugs were fixed.
+%   - Not recommending FW version 1.26 anymore
+%   - Updated version numbers
+%
+%  * Version 2.1, 2009/08/31
+%    First released with toolbox version 4.01
+%    - Considered to be stable and working
+%    - Very occasional freezes with FW 1.26 during
+%      massive production use, see also:
+%      http://www.mindstorms.rwth-aachen.de/trac/ticket/51
+%
+%
+% Signature
+%   Author: Linus Atorf (see AUTHORS)
+%   Date: 2010/09/14
+%   Copyright: 2007-2010, RWTH Aachen University
+%
+%
+% ***********************************************************************************************
+% *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *
+% *                                                                                             *
+% *  The RWTH - Mindstorms NXT Toolbox is free software: you can redistribute it and/or modify  *
+% *  it under the terms of the GNU General Public License as published by the Free Software     *
+% *  Foundation, either version 3 of the License, or (at your option) any later version.        *
+% *                                                                                             *
+% *  The RWTH - Mindstorms NXT Toolbox is distributed in the hope that it will be useful,       *
+% *  but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS  *
+% *  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.             *
+% *                                                                                             *
+% *  You should have received a copy of the GNU General Public License along with the           *
+% *  RWTH - Mindstorms NXT Toolbox. If not, see <http://www.gnu.org/licenses/>.                 *
+% ***********************************************************************************************
+*/
+
+
+// *************** GLOBAL DEFINES
+// important to be before includes,
+// since they might be used inside the includes!
+#define PROGRAM_VERSION "2.2"
+
+#define INBOX           1
+#define OUTBOX          0
+#define DEBUG_OUTBOX    2
+
+// Protocol constants
+#define PROTO_CONTROLLED_MOTORCMD       1
+#define PROTO_RESET_ERROR_CORRECTION    2
+#define PROTO_ISMOTORREADY              3
+#define PROTO_CLASSIC_MOTORCMD          4
+#define PROTO_JUMBOPACKET               5
+
+
+
+
+
+// *************** INCLUDES
+#include "Controller.nxc"
+// Current file structure:
+// + MotorControl.nxc (this file)
+// |-+ Controller.nxc
+//   |-- MotorFunctions.nxc
+//   |-- SpeedFromPosLookup.nxc
+//   |-- ControllerCore.nxc (for Motor A)
+//   |-- ControllerCore.nxc (for Motor B)
+//   |-- ControllerCore.nxc (for Motor C)
+//   |-- ControllerCore.nxc (for sync mode)
+
+
+
+// *************** PROGRAM STARTS
+
+
+
+struct typRunMotorParams {
+    int  power;
+    long tacholimit;
+    bool speedreg;
+    bool holdbrake;
+    bool smoothstart;
+    int turnratio;
+};
+
+
+byte SyncPorts;
+
+
+typRunMotorParams motorParamsA;
+typRunMotorParams motorParamsB;
+typRunMotorParams motorParamsC;
+typRunMotorParams motorParamsSync;
+
+
+//TODO are the mutexes really still needed?
+mutex movingA;
+mutex movingB;
+mutex movingC;
+
+// these semaphores are actually interpreted as "motorArunning", as they are
+// also set and interpreted for synced movements... a bit like the mutexes above
+bool taskArunning;
+bool taskBrunning;
+bool taskCrunning;
+#ifdef ENABLEDEBUGGING_SHOWTASKS
+    bool taskSyncRunning;
+#endif
+
+
+
+
+#ifdef ENABLEDEBUGGING_OLDLCDTIMING
+	long parsedTime;
+	long taskStartedTime;
+#endif
+
+
+safecall void DisplayMainScreen() {
+     string tmp;
+    // nice message to screen:
+
+    tmp =         StrCat("MotorControl ", PROGRAM_VERSION);
+    TextOut(0,LCD_LINE1, tmp, true);
+    TextOut(0,LCD_LINE2, "for FW 1.28-1.29", false);
+
+    TextOut(3,LCD_LINE4, "(C) RWTH Aachen", false);
+    TextOut(3,LCD_LINE5, "University, LfB", false);
+
+    TextOut(4,LCD_LINE7, "Press ORANGE to", false);
+    TextOut(4,LCD_LINE8, "stop all motors", false);
+
+
+    #ifdef ENABLEDEBUGGING_LCD_SLOW_ANTIBUG
+        TextOut(0, LCD_LINE8, "SLOW ANTIBUG ON  ", true);
+    #endif// - - - - - - -
+
+}//end void
+
+
+
+safecall void TaskBusySignal() {
+    PlayTone(2000, 50);
+    Wait(50);
+    PlayTone(1500, 50);
+}//end TaskBusySignal
+
+
+// tasks
+task MoveA() {
+    //TextOut(0,LCD_LINE6, "Task A started");
+    //Acquire(movingA);
+
+    taskArunning = true;
+
+    bool stoppedByDirectCmd;
+    stoppedByDirectCmd = RunMotorA(OUT_A, motorParamsA.power, motorParamsA.tacholimit, motorParamsA.speedreg, motorParamsA.holdbrake, motorParamsA.smoothstart);
+
+    // if we exited from external NXTMotor.Stop command, we might've overwritten
+    // the power value before exiting the main controller loop, so restore defined
+    // end state here again:
+    if (stoppedByDirectCmd) {
+        if (MotorRegulation(OUT_A) == OUT_REGMODE_SPEED) {
+            MotorBrake(OUT_A);
+        } else {
+            MotorOff(OUT_A);
+        }//end if
+    }//end if
+
+    taskArunning = false;
+
+    //Release(movingA);
+    //TextOut(0,LCD_LINE6, "Task A stopped");
+}//MoveA
+
+
+task MoveB() {
+    //TextOut(0,LCD_LINE7, "Task B started");
+    //Acquire(movingB);
+
+    taskBrunning = true;
+
+    #ifdef ENABLEDEBUGGING_OLDLCDTIMING
+		taskStartedTime = CurrentTick() - receivedMsgTime;    // NEW DEBUG
+    #endif
+
+    bool stoppedByDirectCmd;
+    stoppedByDirectCmd = RunMotorB(OUT_B, motorParamsB.power, motorParamsB.tacholimit, motorParamsB.speedreg, motorParamsB.holdbrake, motorParamsB.smoothstart);
+
+    // if we exited from external NXTMotor.Stop command, we might've overwritten
+    // the power value before exiting the main controller loop, so restore defined
+    // end state here again:
+    if (stoppedByDirectCmd) {
+        if (MotorRegulation(OUT_B) == OUT_REGMODE_SPEED) {
+            MotorBrake(OUT_B);
+        } else {
+            MotorOff(OUT_B);
+        }//end if
+    }//end if
+
+    #ifdef ENABLEDEBUGGING_OLDLCDTIMING
+		string tmp = "";   // NEW DEBUG
+
+		tmp = NumToStr(parsedTime);
+		tmp = StrCat("Parsed ", tmp, "ms");
+		TextOut(0,LCD_LINE3, tmp, true);
+
+		tmp = NumToStr(taskStartedTime);
+		tmp = StrCat("Task ", tmp, "ms");
+		TextOut(0,LCD_LINE5, tmp);
+
+		tmp = NumToStr(motorStartedTime);
+		tmp = StrCat("Motor ", tmp, "ms");
+		TextOut(0,LCD_LINE7, tmp);
+	#endif
+
+
+    taskBrunning = false;
+    //Release(movingB);
+
+}//MoveB
+
+
+task MoveC() {
+    //TextOut(0,LCD_LINE8, "Task C started");
+    //Acquire(movingC);
+
+    taskCrunning = true;
+
+    bool stoppedByDirectCmd;
+    stoppedByDirectCmd = RunMotorC(OUT_C, motorParamsC.power, motorParamsC.tacholimit, motorParamsC.speedreg, motorParamsC.holdbrake, motorParamsC.smoothstart);
+
+    // if we exited from external NXTMotor.Stop command, we might've overwritten
+    // the power value before exiting the main controller loop, so restore defined
+    // end state here again:
+    if (stoppedByDirectCmd) {
+        if (MotorRegulation(OUT_C) == OUT_REGMODE_SPEED) {
+            MotorBrake(OUT_C);
+        } else {
+            MotorOff(OUT_C);
+        }//end if
+    }//end if
+
+    taskCrunning = false;
+
+    //Release(movingC);
+    //TextOut(0,LCD_LINE8, "Task C stopped");
+}//MoveC
+
+
+task MoveSync() {
+
+    #ifdef ENABLEDEBUGGING_SHOWTASKS
+        taskSyncRunning = true;
+    #endif
+
+    bool stoppedByDirectCmd;
+
+    if (SyncPorts == 3) { // OUT_AB
+        //Acquire(movingA);
+        //Acquire(movingB);
+            taskArunning = true;
+            taskBrunning = true;
+            stoppedByDirectCmd = RunMotor2(OUT_A, motorParamsSync.power, motorParamsSync.tacholimit, false, motorParamsSync.holdbrake, motorParamsSync.smoothstart, OUT_B);
+            if (stoppedByDirectCmd) {
+                if (MotorRegulation(OUT_A) == OUT_REGMODE_SPEED) {
+                    MotorBrake2(OUT_A, OUT_B);
+                } else {
+                    MotorOff2(OUT_A, OUT_B);
+                }//end if
+            }//end if
+            taskArunning = false;
+            taskBrunning = false;
+        //Release(movingA);
+        //Release(movingB);
+    } else if (SyncPorts == 4) { // OUT_AC
+        //Acquire(movingA);
+        //Acquire(movingC);
+            taskArunning = true;
+            taskCrunning = true;
+            stoppedByDirectCmd = RunMotor2(OUT_A, motorParamsSync.power, motorParamsSync.tacholimit, false, motorParamsSync.holdbrake, motorParamsSync.smoothstart, OUT_C);
+            if (stoppedByDirectCmd) {
+                if (MotorRegulation(OUT_A) == OUT_REGMODE_SPEED) {
+                    MotorBrake2(OUT_A, OUT_C);
+                } else {
+                    MotorOff2(OUT_A, OUT_C);
+                }//end if
+            }//end if
+            taskArunning = false;
+            taskCrunning = false;
+        //Release(movingA);
+        //Release(movingC);
+    } else if (SyncPorts == 5) { // OUT_BC
+        //Acquire(movingB);
+        //Acquire(movingC);
+            taskBrunning = true;
+            taskCrunning = true;
+            stoppedByDirectCmd = RunMotor2(OUT_B, motorParamsSync.power, motorParamsSync.tacholimit, false, motorParamsSync.holdbrake, motorParamsSync.smoothstart, OUT_C);
+            if (stoppedByDirectCmd) {
+                if (MotorRegulation(OUT_B) == OUT_REGMODE_SPEED) {
+                    MotorBrake2(OUT_B, OUT_C);
+                } else {
+                    MotorOff2(OUT_B, OUT_C);
+                }//end if
+            }//end if
+            taskBrunning = false;
+            taskCrunning = false;
+        //Release(movingB);
+        //Release(movingC);
+    }//end if
+
+    #ifdef ENABLEDEBUGGING_SHOWTASKS
+        taskSyncRunning = false;
+    #endif
+}//MoveSync
+
+
+
+
+inline bool IsMotorReady(const byte &port) {
+
+    // check output state info, this is simple
+    if (MotorIsRunning(port)) {
+        return false;
+    } else { // maybe braking or coasting or whatever:
+        switch(port) {
+        case OUT_A:
+            return !(taskArunning);
+            break;
+        case OUT_B:
+            return !(taskBrunning);
+            break;
+        case OUT_C:
+            return !(taskCrunning);
+            break;
+        }//end switch
+
+   }//end if
+
+}//end function
+
+
+
+/*
+task dummyA() {
+    int i = 0;
+    int j = 0;
+    while(true){
+        i++;
+        i = j;
+        j = MotorTachoCount(OUT_A);
+    }//end while
+}//end task
+
+task dummyB() {
+    int i = 0;
+    int j = 0;
+    while(true){
+        i++;
+        i = j;
+        j = MotorTachoCount(OUT_B);
+    }//end while
+}//end task
+
+task dummyC() {
+    int i = 0;
+    int j = 0;
+    while(true){
+        i++;
+        i = j;
+        j = MotorTachoCount(OUT_C);
+    }//end while
+}//end task
+
+task dummyD() {
+    int i = 0;
+    int j = 0;
+    while(true){
+        i++;
+        i = j;
+        j = MotorTachoCount(OUT_A);
+    }//end while
+}//end task
+
+task dummyE() {
+    int i = 0;
+    int j = 0;
+    while(true){
+        i++;
+        i = j;
+        j = MotorTachoCount(OUT_B);
+    }//end while
+}//end task
+*/
+
+
+
+
+
+
+// -------------------------------------------------
+// main task
+
+/*
+task TESTmain() {
+
+     byte port = OUT_B;
+
+
+// **** Init
+
+    DisplayMainScreen();
+    //Wait(9000);
+
+    // don't forget this
+    InitSpeedFromPosLUT();
+
+    // launch 3 dummy tasks
+    start dummyA;
+    start dummyB;
+    //start dummyC;
+    //start dummyD;
+    //start dummyE;
+    Wait(20);
+
+
+
+
+// **** Init / Reset motor
+    MotorOff(OUT_A);
+    MotorOff(OUT_B);
+    MotorOff(OUT_C);
+    ResetErrorCorrectionAndBlockCount(OUT_A);
+    ResetErrorCorrectionAndBlockCount(OUT_B);
+    ResetErrorCorrectionAndBlockCount(OUT_C);
+
+
+    Wait(1100);
+
+// **** Try out new function
+    //RunMotor(const byte &port, const int &power, const long &tacholimit, const bool &speedreg, const bool &holdbrake, const bool &smoothstart)
+    //RunMotor(port, 100, 1000, true, false, false);
+    //RunMotor2(OUT_B, 100, 1000, false, false, true, OUT_C);
+
+
+    motorParamsA.power = 100;
+    motorParamsA.tacholimit = 1000;
+    motorParamsA.speedreg = false;
+    motorParamsA.holdbrake = false;
+    motorParamsA.smoothstart = true;
+
+
+    motorParamsB.power = 100;
+    motorParamsB.tacholimit = 1000;
+    motorParamsB.speedreg = false;
+    motorParamsB.holdbrake = false;
+    motorParamsB.smoothstart = true;
+
+    motorParamsC.power = 100;
+    motorParamsC.tacholimit = 1000;
+    motorParamsC.speedreg = false;
+    motorParamsC.holdbrake = false;
+    motorParamsC.smoothstart = true;
+
+    start MoveA;
+    start MoveB;
+    start MoveC;
+
+    //Wait(4000);
+
+    //NumOut(0, LCD_LINE1, MotorTachoCount(OUT_B), true);
+    //NumOut(0, LCD_LINE2, MotorTachoCount(OUT_C));
+
+
+
+
+
+}//end task
+*/
+
+
+
+
+task main(){
+
+    // parameter initialization
+    string in = "";
+    int i = 0;
+    byte packetType;
+    byte  port;
+    int  power = 0;
+    long angle = 0;
+    int  turnratio  = 0;
+    byte modebits = 0;
+    bool speedreg = false;
+    bool holdbrake = false;
+    bool smoothstart = false;
+
+    byte port1;
+    byte port2;
+
+    const byte bit1 = 1;
+    const byte bit2 = 2;
+    const byte bit3 = 4;
+
+
+    string tmp = "";
+    //string tmp2 = "";
+
+
+    // init!
+    taskArunning = false;
+    taskBrunning = false;
+    taskCrunning = false;
+
+
+    DisplayMainScreen();
+    //Wait(9000);
+
+    // don't forget this
+    InitSpeedFromPosLUT();
+
+
+    // purge mailboxes to make sure, in case something is left over,
+    // I don't know...
+    in = "...";
+    while(StrLen(in) > 0) {
+        ReceiveRemoteString(INBOX, true, in);
+    }//end while
+    in = "...";
+    while(StrLen(in) > 0) {
+        ReceiveRemoteString(OUTBOX, true, in);
+    }//end while
+    #ifdef ENABLEDEBUGGING_REMOTELOGGING
+        in = "...";
+        while(StrLen(in) > 0) {
+            ReceiveRemoteString(DEBUG_OUTBOX, true, in);
+        }//end while
+    #endif
+
+    in = "";
+
+
+    #ifdef ENABLEDEBUGGING_REMOTELOGGING
+        SendDebugMessage(99, "Remote logging enabled!");
+    #endif
+
+    while(true){
+
+        ReceiveRemoteString(INBOX, true, in);
+
+        if(StrLen(in) > 0) {
+
+            #ifdef ENABLEDEBUGGING_OLDLCDTIMING
+				receivedMsgTime = CurrentTick();  // NEW DEBUG
+            #endif
+
+            #ifdef ENABLEDEBUGGING_ACOUSTICPROTOCOL
+                PlayTone(200, 50);
+            #endif
+
+
+            // take first value, decide what to do...
+            tmp        = SubStr(in,  0, 1);  // pos 0
+            packetType = StrToNum(tmp);
+
+            // main packet handler!
+            switch (packetType) {
+            case PROTO_CONTROLLED_MOTORCMD: // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+                // parse...
+                tmp      = SubStr(in,  1, 1);  // pos 1
+                port     = StrToNum(tmp);
+
+                tmp      = SubStr(in,  2, 3);  // pos 2 3 4
+                power    = StrToNum(tmp);
+
+                tmp      = SubStr(in,  5, 6);  // pos 5 6 7 8 9 10
+                angle    = StrToNum(tmp);
+
+                tmp      = SubStr(in,  11, 1); // pos 11
+                modebits = StrToNum(tmp);
+
+
+                // process...
+                // power
+                if(power > 100) {
+                    power = -(power - 100);
+                }//end if
+
+                // bitfield
+                if (modebits & bit1) {
+                    holdbrake = true;
+                } else {
+                    holdbrake = false;
+                }//end if
+
+                if (modebits & bit2) {
+                    speedreg = true;
+                } else {
+                    speedreg = false;
+                }//end if
+
+                if (modebits & bit3) {
+                    smoothstart = true;
+                } else {
+                    smoothstart = false;
+                }//end if
+
+
+                // finally, the command
+                if (port == 0) { // OUT_A
+
+                    motorParamsA.power = power;
+                    motorParamsA.tacholimit = angle;
+                    motorParamsA.speedreg = speedreg;
+                    motorParamsA.holdbrake = holdbrake;
+                    motorParamsA.smoothstart = smoothstart;
+
+                    if (taskArunning == false) {
+                        start MoveA;
+                    } else {
+                        TaskBusySignal();
+                    } // end if
+
+                } else if (port == 1) { // OUT_B
+
+                    motorParamsB.power = power;
+                    motorParamsB.tacholimit = angle;
+                    motorParamsB.speedreg = speedreg;
+                    motorParamsB.holdbrake = holdbrake;
+                    motorParamsB.smoothstart = smoothstart;
+
+                    if (taskBrunning == false) {
+
+                        #ifdef ENABLEDEBUGGING_OLDLCDTIMING
+                            parsedTime = CurrentTick() - receivedMsgTime; // NEW DEBUG
+                        #endif
+
+                        start MoveB;
+                    } else {
+                        TaskBusySignal();
+                    } // end if
+
+                } else if (port == 2) { // OUT_C
+
+                    motorParamsC.power = power;
+                    motorParamsC.tacholimit = angle;
+                    motorParamsC.speedreg = speedreg;
+                    motorParamsC.holdbrake = holdbrake;
+                    motorParamsC.smoothstart = smoothstart;
+
+                    if (taskCrunning == false) {
+                        start MoveC;
+                    } else {
+                       TaskBusySignal();
+                    }// end if
+
+                } else { // Otherwise (OUT_AB, OUT_AC, OUT_BC, OUT_ABC?)
+
+                    SyncPorts = port;
+
+                    motorParamsSync.power = power;
+                    motorParamsSync.tacholimit = angle;
+                    motorParamsSync.turnratio = 0; //turnratio;
+                    motorParamsSync.speedreg = false; //always for sync!
+                    motorParamsSync.holdbrake = holdbrake;
+                    motorParamsSync.smoothstart = smoothstart;
+
+                    // this doesn't look elegant at all, but it works.
+                    if (  ((port == 3) && (taskArunning == false) && (taskBrunning == false))
+                       || ((port == 4) && (taskArunning == false) && (taskCrunning == false))
+                       || ((port == 5) && (taskBrunning == false) && (taskCrunning == false)) )  {
+                        start MoveSync;
+                    } else {
+                       TaskBusySignal();
+                    }//end if
+
+                }//end if
+
+                //PlayTone(440, 50);
+
+                break;
+            case PROTO_RESET_ERROR_CORRECTION: // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+                tmp      = SubStr(in,  1, 1);  // pos 1
+                port     = StrToNum(tmp);
+
+                if (port <= 2) {
+                    ResetErrorCorrectionAndBlockCount(port);
+                } else if (port == 3) { // OUT_AB
+                    ResetErrorCorrectionAndBlockCount(OUT_A);
+                    ResetErrorCorrectionAndBlockCount(OUT_B);
+                } else if (port == 4) { // OUT_AC
+                    ResetErrorCorrectionAndBlockCount(OUT_A);
+                    ResetErrorCorrectionAndBlockCount(OUT_C);
+                } else if (port == 5) { // OUT_BC
+                    ResetErrorCorrectionAndBlockCount(OUT_B);
+                    ResetErrorCorrectionAndBlockCount(OUT_C);
+                } else if (port == 6) { // OUT_ABC
+                    ResetErrorCorrectionAndBlockCount(OUT_A);
+                    ResetErrorCorrectionAndBlockCount(OUT_B);
+                    ResetErrorCorrectionAndBlockCount(OUT_C);
+                }//end if
+
+                break;
+            case PROTO_ISMOTORREADY:  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+                tmp      = SubStr(in,  1, 1);  // pos 1
+                port     = StrToNum(tmp);
+
+                // send answer string: portnum, then if ready or not
+                if (IsMotorReady(port)) {
+                    tmp = StrCat(tmp, "1");
+                } else {
+                    tmp = StrCat(tmp, "0");
+                }//end if
+                SendMessage(OUTBOX, tmp);
+
+                break;
+            case PROTO_CLASSIC_MOTORCMD: // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+                // parse...
+                tmp      = SubStr(in,  1, 1);  // pos 1
+                port     = StrToNum(tmp);
+
+                tmp      = SubStr(in,  2, 3);  // pos 2 3 4
+                power    = StrToNum(tmp);
+
+                tmp      = SubStr(in,  5, 6);  // pos 5 6 7 8 9 10
+                angle    = StrToNum(tmp);
+
+                tmp      = SubStr(in,  11, 1); // pos 11
+                speedreg = StrToNum(tmp);
+
+
+                // process...
+                // power
+                if(power > 100) {
+                    power = -(power - 100);
+                }//end if
+
+                //% OUT_A	    0x00
+                //% OUT_B	    0x01
+                //% OUT_C	    0x02
+                //% OUT_AB	0x03
+                //% OUT_AC	0x04
+                //% OUT_BC	0x05
+                //% OUT_ABC	0x06
+
+                if (port <= 2) {
+
+                    // if no current tacholimit and no new one, allow speed change
+                    if ((MotorTachoLimit(port) == 0) && (angle == 0)) {
+                        MotorCmdSingleReset(port, power, angle, speedreg);
+                    } else {
+                        if (IsMotorReady(port)) {
+                            MotorCmdSingleReset(port, power, angle, speedreg);
+                        } else {
+                            TaskBusySignal();
+                        }//end if
+                    }//end if
+
+                } else { // Otherwise (OUT_AB, OUT_AC, OUT_BC, OUT_ABC?)
+
+                    switch(port) {
+                    case 3: // OUT_AB
+                        port1 = 0;
+                        port2 = 1;
+                        break;
+                    case 4: // OUT_AC
+                        port1 = 0;
+                        port2 = 2;
+                        break;
+                    case 5: // OUT_BC
+                        port1 = 1;
+                        port2 = 2;
+                        break;
+                    }//end switch
+
+
+                    // if no current tacholimit and no new one, allow speed change
+                    if ((MotorTachoLimit(port1) == 0) && (MotorTachoLimit(port2) == 0)  && (angle == 0)) {
+                            //~~~~BEGIN COPY PASTE CODE~~~~~~~~~~~~~~~~~~
+                            //avoid already synced motors (that doesn't work as we know...)
+                            until((MotorRegulation(port1) == OUT_REGMODE_IDLE) && (MotorRegulation(port2) == OUT_REGMODE_IDLE)) {
+                                // repeatedly setting this is not nice, but so
+                                // we don't need a timeout...!
+                                MotorOff2(port1, port2);
+                                // make sure VM applies our settings
+                                Wait(1);
+                            }//end until
+                            MotorCmdDoubleReset(port1, power, angle, port2);
+                            //~~~~END COPY PASTE CODE~~~~~~~~~~~~~~~~~~
+                    } else {
+                        if (IsMotorReady(port1) && IsMotorReady(port2)) {
+                            //~~~~BEGIN COPY PASTE CODE~~~~~~~~~~~~~~~~~~
+                            //avoid already synced motors (that doesn't work as we know...)
+                            until((MotorRegulation(port1) == OUT_REGMODE_IDLE) && (MotorRegulation(port2) == OUT_REGMODE_IDLE)) {
+                                // repeatedly setting this is not nice, but so
+                                // we don't need a timeout...!
+                                MotorOff2(port1, port2);
+                                // make sure VM applies our settings
+                                Wait(1);
+                            }//end until
+                            MotorCmdDoubleReset(port1, power, angle, port2);
+                            //~~~~END COPY PASTE CODE~~~~~~~~~~~~~~~~~~
+                        } else {
+                           TaskBusySignal();
+                        }//end if
+
+                    }//end if
+
+                }//end if
+
+
+                break;
+            }//end switch - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+            // reset message !!!!
+            in = "";
+
+
+        }//end if
+
+        // check cancel button:
+        if (ButtonPressed(BTNCENTER, false)) {
+            // release all motors
+            MotorOff(OUT_A);
+            MotorOff(OUT_B);
+            MotorOff(OUT_C);
+            PlayTone(440, 500);
+            Wait(100);
+
+            // release all motors again
+            MotorOff(OUT_A);
+            MotorOff(OUT_B);
+            MotorOff(OUT_C);
+
+            TextOut(5,LCD_LINE7, "EMERGENCY STOP    ", false);
+            TextOut(2,LCD_LINE8, "Restart program!  ", false);
+            Wait(2500);
+            StopAllTasks();
+
+            /*
+            // keep
+            while(ButtonPressed(BTNCENTER, false)) {
+                MotorOff(OUT_A);
+                MotorOff(OUT_B);
+                MotorOff(OUT_C);
+                PlayTone(440, 100);
+                Wait(500);
+            }//end while
+
+            // purge incoming queue...
+            in = "...";
+            while(StrLen(in) > 0) {
+                ReceiveRemoteString(INBOX, true, in);
+            }//end while
+            in = "";
+
+            // manually reset task-semaphores
+            // not very clean, but this button is for emergencies anyway...
+            taskArunning = false;
+            taskBrunning = false;
+            taskCrunning = false;
+
+            // reset counters for a nice clean start
+            ResetErrorCorrectionAndBlockCount(OUT_A);
+            ResetErrorCorrectionAndBlockCount(OUT_B);
+            ResetErrorCorrectionAndBlockCount(OUT_C);
+            */
+        }//end if
+
+
+        // debugging
+        #ifdef ENABLEDEBUGGING_SHOWTASKS
+            string taskMsg = "";
+            string tmpA = "_ ";
+            string tmpB = "_ ";
+            string tmpC = "_ ";
+            string tmpSync = "____ ";
+
+            if (taskArunning) tmpA = "A ";
+            if (taskBrunning) tmpB = "B ";
+            if (taskCrunning) tmpC = "C ";
+            if (taskSyncRunning) tmpSync = "Sync ";
+
+            taskMsg = StrCat(tmpA, tmpB, tmpC, tmpSync);
+
+            TextOut(0, LCD_LINE7, taskMsg);
+        #endif
+
+    }//end while
+
+
+    TextOut(0,LCD_LINE1, "MainLoop exit", true);
+    PlayTone(500, 1000);
+    Wait(5000);
+
+
+}//end task
+
