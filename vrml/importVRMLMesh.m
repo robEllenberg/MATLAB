@@ -14,7 +14,7 @@ vrfile=fopen(fname);
 fprintf('Reading pointcloud data from %s\n', fname)
 p=1;
 counter=0;
-pointcloud=[0 0 0];
+pointcloud=zeros(2000,3);
 
 while counter ~= -1
     data=fgets(vrfile);
@@ -28,12 +28,17 @@ while counter ~= -1
             p=p+1;
         else fpoint=[];counter=-1;
         end
+        if p>size(pointcloud,1);
+            pointcloud=[pointcloud;zeros(200,3)];
+        end
     end
 end
 
+pointcloud=pointcloud(1:p,:); %trim padded zeros
+
 p=1;
 counter=0;
-coordIndex=[0 0 0 0];
+coordIndex=zeros(2000,4);
 fprintf('Reading surface mesh data from %s\n', fname)
 while counter ~= -1
     data=fgets(vrfile);
@@ -44,11 +49,15 @@ while counter ~= -1
         if isempty(strfind(data,']'));
             t=sscanf(data,'%d, %d, %d, %d,');
             coordIndex(p,:)=t';
-            p=p+1;
+            p=p+1;  
         else fpoint=[];counter=-1;
+        end
+        if p>size(coordIndex,1);
+            coordIndex=[coordIndex;zeros(200,4)];
         end
     end
 end
+coordIndex=coordIndex(1:p,:); %trim padded zeros
 fclose(vrfile);
 
 disp('Display results')

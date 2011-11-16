@@ -1,8 +1,8 @@
 %% Make a mirror image of all left side bodies
-listing = dir('Body_L*.wrl');
+listing = dir('Body_*.wrl');
 appearance.ambientIntensity = 1;
-appearance.diffuse = [.7 .7 .7];
-appearance.specular = [.8 .8 .83];
+appearance.diffuse = [.8 .8 .5];
+appearance.specular = [.8 .85 .8];
 appearance.shininess = .3;
 
 for k=1:length(listing)
@@ -12,15 +12,16 @@ for k=1:length(listing)
         [pointCloud,K]=importVRMLMesh(fname);
         
         %crude way to flip from left to right
-        newName=fname(1:end-4);newName(6)='R';
+        newName=['convhull_',fname(6:end-4)];
         
-        %Mirro about Y axis
-        mirrorCloud=pointCloud;
-        mirrorCloud(:,2)=-mirrorCloud(:,2);
+        %Mirror about Y axis
+        newK=convhull(pointCloud(:,1),pointCloud(:,2),pointCloud(:,3));
+        [newP,newK]=shrinkPointCloud(pointCloud,newK);
         
-        exportTriMeshtoVRML(newName,mirrorCloud,K,appearance)
+        exportTriMeshtoVRML(newName,newP,newK,appearance)
         %demonstrate that it worked (optional)
         importVRMLMesh([newName,'.wrl'],1);
+        drawnow;
         pause(1);
     end
     clear mirrorCloud K pointCloud ans

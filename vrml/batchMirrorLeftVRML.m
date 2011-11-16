@@ -14,13 +14,14 @@ for k=1:length(listing)
         %crude way to flip from left to right
         newName=fname(1:end-4);newName(6)='R';
         
-        %Mirro about Y axis
+        %Mirror about Y axis
         mirrorCloud=pointCloud;
         mirrorCloud(:,2)=-mirrorCloud(:,2);
         
         exportTriMeshtoVRML(newName,mirrorCloud,K,appearance)
         %demonstrate that it worked (optional)
         importVRMLMesh([newName,'.wrl'],1);
+        drawnow;
         pause(1);
     end
     clear mirrorCloud K pointCloud ans
