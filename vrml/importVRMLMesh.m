@@ -22,53 +22,51 @@ while ~feof(vrfile)
     %TODO change the other functions to use this new structure
     %cell array format
     data{k}=extractVRMLData(vrfile)
-
     
-
-
-pointcloud=pointcloud(1:p,:); %trim padded zeros
-
-p=1;
-counter=0;
-fprintf('Reading surface mesh data from %s\n', fname)
-while counter ~= -1
-    data=fgets(vrfile);
-    fpoint=strfind(data,'coordIndex');% 2 checkers to find out the begining
-    f2point=strfind(data,'[');   %of the x,y,z " point [ "
-    while ~isempty(fpoint) && ~isempty(f2point)
+    pointcloud=pointcloud(1:p,:); %trim padded zeros
+    
+    p=1;
+    counter=0;
+    fprintf('Reading surface mesh data from %s\n', fname)
+    while counter ~= -1
         data=fgets(vrfile);
-        if isempty(strfind(data,']'));
-            t=sscanf(data,'%d, %d, %d, %d,');
-            coordIndex(p,:)=t';
-            p=p+1;  
-        else fpoint=[];counter=-1;
-        end
-        if p>size(coordIndex,1);
-            coordIndex=[coordIndex;zeros(200,4)];
+        fpoint=strfind(data,'coordIndex');% 2 checkers to find out the begining
+        f2point=strfind(data,'[');   %of the x,y,z " point [ "
+        while ~isempty(fpoint) && ~isempty(f2point)
+            data=fgets(vrfile);
+            if isempty(strfind(data,']'));
+                t=sscanf(data,'%d, %d, %d, %d,');
+                coordIndex(p,:)=t';
+                p=p+1;
+            else fpoint=[];counter=-1;
+            end
+            if p>size(coordIndex,1);
+                coordIndex=[coordIndex;zeros(200,4)];
+            end
         end
     end
-end
-coordIndex=coordIndex(1:p,:); %trim padded zeros
-fclose(vrfile);
-
-disp('Display results')
-
-K=coordIndex(:,1:3)+1;
-X=pointcloud(:,1);Y=pointcloud(:,2);Z=pointcloud(:,3);%Load positions to X,Y,Z
-
-if nargin<2
-    dispResult=0;
-end
-if dispResult
+    coordIndex=coordIndex(1:p,:); %trim padded zeros
+    fclose(vrfile);
     
-    %Display the imported VRML Mesh
-    figure(1)
-    trisurf(K,X,Y,Z);
-    axis equal
-   
+    disp('Display results')
+    
+    K=coordIndex(:,1:3)+1;
+    X=pointcloud(:,1);Y=pointcloud(:,2);Z=pointcloud(:,3);%Load positions to X,Y,Z
+    
+    if nargin<2
+        dispResult=0;
+    end
+    if dispResult
+        
+        %Display the imported VRML Mesh
+        figure(1)
+        trisurf(K,X,Y,Z);
+        axis equal
+        
+    end
 end
 
-function [datatype,foundType]=findVRMLData(fidi,types)
+function [datatype,foundType]=findVRMLData(fid,types)
 
     if nargin<2
         types={'point','coordIndex','vector'};
@@ -100,10 +98,10 @@ function data=extractVRMlData(fid)
 
     scanComplete=0;
 
-    while ~scanComplete 
+    while ~scanComplete
         t=sscanf(dataLine,'%f'); %Scan for data
         data(p,:)=t'; %Store the line of data
-        p=p+1;  
+        p=p+1;
 
         if p>size(data,1);
             data=[data;zeros(200,4)];

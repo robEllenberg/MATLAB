@@ -1,5 +1,22 @@
+function processVRML(fileName,mir,hull)
+
+switch nargin
+    case 1
+        mir=0;
+        hull=0;
+    case 2
+        hull=0;
+    case 3
+end
+    
 %% Make a mirror image of all left side bodies
-listing = dir('Body_L*.wrl');
+if strcmp(fileName,'all')
+    listing = dir('Body_L*.wrl');
+else
+    listing(1).name=fileName;
+    listing(1).isdir=0;
+end
+
 appearance.ambientIntensity = 1;
 appearance.diffuse = [.7 .7 .7];
 appearance.specular = [.8 .8 .83];
@@ -11,17 +28,29 @@ for k=1:length(listing)
         
         [pointCloud,K]=importVRMLMesh(fname);
         
-        %crude way to flip from left to right
-        newName=fname(1:end-4);newName(6)='R';
+        %Mirror VRML if specified
+        if mir
+            %assume mirror left to right
+            newName=fname(1:end-4);newName(6)='R';
+            newCloud=pointCloud;
+            newCloud(:,2)=-mirrorCloud(:,2);
+            newMesh=K(:,[1,3,2]);
+        else
+            newCloud=pointCloud;
+            newName=fname;
+            newMesh=K;
+        end
         
-        %Mirro about Y axis
-        mirrorCloud=pointCloud;
-        mirrorCloud(:,2)=-mirrorCloud(:,2);
-        
-        exportTriMeshtoVRML(newName,mirrorCloud,K,appearance)
+        if hull
+            newMesh=convhull(newCloud);
+            [newCloud,newMesh]=shrinkPointCloud(newCloud,newMesh);
+        end
+        exportTriMeshtoVRML(newName(1:end-4),newCloud,newMesh,appearance)
         %demonstrate that it worked (optional)
         importVRMLMesh([newName,'.wrl'],1);
         pause(1);
     end
-    clear mirrorCloud K pointCloud ans
+    clear newCloud K newMesh pointCloud ans
+end
+
 end
