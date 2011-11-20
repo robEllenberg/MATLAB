@@ -44,10 +44,11 @@ for k=1:length(listing)
         if hull
             newMesh=convhull(newCloud);
             [newCloud,newMesh]=shrinkPointCloud(newCloud,newMesh);
+            newName=['convhull' newName(5:end)];
         end
         exportTriMeshtoVRML(newName(1:end-4),newCloud,newMesh,appearance)
         %demonstrate that it worked (optional)
-        importVRMLMesh([newName,'.wrl'],1);
+        importVRMLMesh(newName,1);
         pause(1);
     end
     clear newCloud K newMesh pointCloud ans
