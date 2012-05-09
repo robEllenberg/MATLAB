@@ -10,7 +10,9 @@
 
 % verify that the RWTH - Mindstorms NXT toolbox is installed.
 if verLessThan('RWTHMindstormsNXT', '2.00');
-    error('This program requires the RWTH - Mindstorms NXT Toolbox version 2.00 or greater. Go to http://www.mindstorms.rwth-aachen.de and follow the installation instructions!');
+    error(strcat('This program requires the RWTH - Mindstorms NXT Toolbox ' ...
+        ,'version 2.00 or greater. Go to http://www.mindstorms.rwth-aachen.de ' ...
+        ,'and follow the installation instructions!'));
 end%if
 
 

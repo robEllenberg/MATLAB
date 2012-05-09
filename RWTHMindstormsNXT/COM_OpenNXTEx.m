@@ -44,8 +44,10 @@ function handle = COM_OpenNXTEx(ConnectionMode, UseThisNXTMAC, varargin)
 %   To create an inifile with Bluetooth settings, the function
 %   COM_MakeBTConfigFile is available.
 %    
-%   Note that as of right now, the parameter UseThisNXTMAC will be
-%   ignored for Bluetooth connections until implemented in a future version.
+%   Note that as of right now, the parameter UseThisNXTMAC will only be
+%   used on Windows 64 Bit system with "Instrument Control Toolbox" >=
+%   V3.0. This is because Mathworks introduced a new Bluetooth object which
+%   can open connections using the MAC of your device.
 %
 %
 %   handle = COM_OpenNXTEx('Any', UseThisNXTMAC, inifilename)
@@ -101,10 +103,11 @@ function handle = COM_OpenNXTEx(ConnectionMode, UseThisNXTMAC, varargin)
 % See also: COM_OpenNXT, COM_CloseNXT, COM_MakeBTConfigFile, COM_SetDefaultNXT
 %
 % Signature
-%   Author: Linus Atorf (see AUTHORS)
-%   Date: 2009/08/31
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Author: Linus Atorf, Alexander Behrens, Martin Staas (see AUTHORS)
+%   Date: 2011/09/30
+%   Copyright: 2007-2011, RWTH Aachen University
 %
+%   
 %
 % ***********************************************************************************************
 % *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *
@@ -125,6 +128,8 @@ function handle = COM_OpenNXTEx(ConnectionMode, UseThisNXTMAC, varargin)
 %% *** A few guidelines ***
 % This function supports both Linux and Windows with both USB and Bluetooth
 % connections. So we have 4 cases to distinguish.
+% Update (staas 08.09.11): With 64Bit support for Windows we now have more than 4 cases
+%
 % For Bluetooth, the old function BT_OpenHandle was adapted and used. It works for
 % Linux and Windows (it is split internally where necessary).
 % The function USB_OpenHandle is just a wrapper (the counterpart to
@@ -142,6 +147,11 @@ function handle = COM_OpenNXTEx(ConnectionMode, UseThisNXTMAC, varargin)
 % will "ignore" errors, so later on we can still establish a Bluetooth connection.
 % This way, if USB drivers/libraries are not present, the simple COM_OpenNXT
 % (which is essentially COM_OpenNXTEx('Any', ...) won't fail with USB.
+%
+% Update (staas 08.09.11): Added support for Win64 and changed structure of
+%   the code. Now we mainly differ between using "libusb" and "fantom" for
+%   usb support. "Libusb" will be the standard library from now on.
+%   "Fantom" will only be used as Fallback and for backward compability.
 
 
 
@@ -248,8 +258,15 @@ function handle = COM_OpenNXTEx(ConnectionMode, UseThisNXTMAC, varargin)
     h.LastReceiveTime(tic); 
     
     if ispc
-        h.OSName    = 'Windows';
-        h.OSValue   = 1;
+        archstr = computer('arch');
+        Is64Bit = regexp(archstr,'\w*64','match'); %are we running on 64Bit?
+        if isempty(Is64Bit)
+            h.OSName    = 'Windows';
+            h.OSValue   = 1; %32Bit
+        else
+            h.OSName    = 'Windows';
+            h.OSValue   = 4; %64Bit
+        end
     else % mac or linux
         if ismac
             h.OSName    = 'Mac';
@@ -274,6 +291,10 @@ function handle = COM_OpenNXTEx(ConnectionMode, UseThisNXTMAC, varargin)
         % for any, try USB first...
         h = USB_OpenHandle(h, true);
         if ~h.Connected()
+            %revert hack from USB_OpenHandle if neccessary
+            if ispc && isempty(Is64Bit)
+                h.OSValue   = 1; %32Bit
+            end
             % we should have all needed parameters, so lets go
             h = BT_OpenHandle(h, varargin{1});
         end%if
@@ -288,6 +309,10 @@ function handle = COM_OpenNXTEx(ConnectionMode, UseThisNXTMAC, varargin)
 
     end%if
     
+%% Win32 libusb Hack
+if (h.OSValue == 1 && libisloaded('libusb'))
+    h.OSValue = 4;
+end
     
 %% Test our fresh handle / send keep alive
           
@@ -391,6 +416,17 @@ function hOut = BT_OpenHandle(hIn, inifilename, varargin)
             Timeout = 2;
             warning('MATLAB:RWTHMindstormsNXT:Bluetooth:missingInifileParameters','Timeout in bluetooth settings inifile not set. Using default value (2 seconds).')
         end%if
+        if hIn.OSValue == 4 % 64 Bit
+            NXTName = readFromIniFile(inisection, 'NXT-Name', inifilename);
+            NXTMac  = readFromIniFile(inisection, 'NXT-Mac', inifilename);
+            Channel = readFromIniFile(inisection, 'Channel', inifilename);
+            
+            if ~isempty(hIn.NXTMAC) %overwrite if function is called with MAC
+                NXTMac = hIn.NXTMAC;
+            end
+        end
+        
+
     else % LINUX file handle version
 
         ComPort = readFromIniFile( inisection, 'SerialPort', inifilename);
@@ -422,7 +458,7 @@ function hOut = BT_OpenHandle(hIn, inifilename, varargin)
 %% Open bluetooth connection
     textOut(sprintf('Opening Bluetooth connection on port %s... ', ComPort));
 
-    if ispc
+    if ispc && hIn.OSValue == 1 % 32 Bit
         try
             handle = serial(ComPort,'BaudRate', BaudRate, 'DataBits', DataBits, 'Timeout', Timeout);
             fopen(handle);
@@ -432,8 +468,43 @@ function hOut = BT_OpenHandle(hIn, inifilename, varargin)
             %MATLAB Version 7.9 (2009b))
             error('MATLAB:RWTHMindstormsNXT:Bluetooth:couldNotOpenConnection','Could not open bluetooth connection using port %s, BaudRate=%d, DataBits=%d.\nTry using COM_CloseNXT(''all'') first.', ComPort, BaudRate, DataBits);
         end%try
-    else
+    elseif ispc && hIn.OSValue == 4 % 64 Bit
+        if verLessThan('instrument', '2.9') %Instrument Control Toolbox newer than V 3.0 for Bluetooth Object Support
+            error('MATLAB:RWTHMindstormsNXT:Bluetooth:noInstrumentToolbox','Could not open bluetooth connection because the Instrument Control Toolbox is too old or not present. You need the Instrument Control Toolbox V3.0 or newer to use Bluetooth Connections on 64 Bit Systems.');
+        end
         
+        if ~isempty(NXTMac) %open with MAC
+            btMac = strcat( 'btspp://' , NXTMac);
+            handle= Bluetooth(btMac,str2num(Channel));   
+        else %open with name
+            handle = Bluetooth(NXTName,str2num(Channel));
+        end
+        
+        try
+            % Try to open our Bluetooth Handle. This might fail if NXTName
+            % or NXTMac are false or the NXT turned off.
+            fopen(handle);
+            if ~ strcmp(handle.RemoteName,NXTName); %if connection works, check if names match, just to be sure
+                warning('MATLAB:RWTHMindstormsNXT:Bluetooth:namesDontMatch','The Name of the NXT with MAC: "%s" is: "%s" this name does not match the one given in the Bluetooth ini-File: "%s". Using NXT with name: "%s"', NXTMac, handle.RemoteName, NXTName, handle.RemoteName);
+            end
+        catch
+            
+            if ~isempty(NXTMac) && ~isempty(NXTName) %maybe we can get the right NXT by name?
+                try
+                    warning('MATLAB:RWTHMindstormsNXT:Bluetooth:couldNotOpenConnectionMac','Could not open connection to NXT with MAC: "%s". Trying to open NXT with name "%s" instead.', NXTMac, NXTName);
+                    handle = Bluetooth(NXTName,str2num(Channel));
+                    fopen(handle);
+                catch %Name & MAC are wrong... maybe NXT is not installed correctly?
+                    error('MATLAB:RWTHMindstormsNXT:Bluetooth:couldNotOpenConnection', 'Could not open bluetooth connection to NXT: %s. Try using COM_CloseNXT(''all'') first or restart your NXT.', NXTName );
+                end
+            else %no/wrong MAC or no/wrong name? Maybe something wrong with the ini-file!
+                error('MATLAB:RWTHMindstormsNXT:Bluetooth:couldNotOpenConnectionToNXT', 'Could not open bluetooth connection to NXT: %s. Please check your bluetooth ini-File', NXTName );
+        end
+        end %try
+        
+        
+        
+    else
         % is unix
         handle = fopen( ComPort, 'r+' );
         if handle == -1
@@ -481,6 +552,7 @@ function hOut = BT_OpenHandle(hIn, inifilename, varargin)
     if ~isempty(hOut.NXTMAC) 
 
         %TODO get NXT's name & mac in here, and compare...
+        %this is already checked above for Windows 64-Bit. 
         
     end%if
 
@@ -492,17 +564,17 @@ function hOut = USB_OpenHandle(hIn, SuppressErrors)
     
     textOut(sprintf('Opening USB connection...\n'));
     
-    if (hIn.OSValue == 1) || (hIn.OSValue == 3) % Windows and Mac
-        hOut = USB_OpenHandle_Windows(hIn, SuppressErrors);
-    elseif hIn.OSValue == 2 % Linux
-        hOut = USB_OpenHandle_Linux(hIn, SuppressErrors);
+    if (hIn.OSValue == 3) % Mac
+        hOut = USB_OpenHandle_Fantom(hIn, SuppressErrors);
+    elseif (hIn.OSValue == 1)||(hIn.OSValue == 2) || (hIn.OSValue == 4) % Linux and Win(32/64)
+        hOut = USB_OpenHandle_Libusb(hIn, SuppressErrors);
     end%if
     
 end%function
 
 
-%% --- FUNCTION USB_OpenHandle_Windows
-function hOut = USB_OpenHandle_Windows(hIn, SuppressErrors)
+%% --- FUNCTION USB_OpenHandle_Fantom
+function hOut = USB_OpenHandle_Fantom(hIn, SuppressErrors)
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 % Temporary USB construction site for the RWTH - Mindstorms NXT Toolbox
 %           http://www.mindstorms.rwth-aachen.de
@@ -512,8 +584,15 @@ function hOut = USB_OpenHandle_Windows(hIn, SuppressErrors)
 %           http://www.vitalvanreeven.nl/page156/fantomNXT.zip
 %
 % Linus Atorf, 29.3.2008
+%
+% Updates:
+% Martin Staas, 08.09.11
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
+% Update (staas 08.09.11): With Version 4.05 we only use this for Win32 and
+%   Mac. In future Releases we may only use this as a fallback solution for
+%   users who dont use "libusb". "Libubs" will definitly become the
+%   standard library to reduce complexity of our code.
 
 % Basic structure of this function: Load fantom library, create NXT iterator (if
 % it fails, no NXT on USB present), loop through all NXT on this iterator
@@ -537,7 +616,12 @@ function hOut = USB_OpenHandle_Windows(hIn, SuppressErrors)
         textOut(sprintf('  - Loading library "fantom"... '));
         try
             % use "our" wrapper file...
-            loadlibrary('fantom', @fantom_proto);
+            if (hIn.OSValue == 3) %Mac?
+                loadlibrary('Fantom', @fantom_proto,'alias','fantom'); % little hack for Mac-Support
+            else
+                loadlibrary('fantom', @fantom_proto);
+            end
+            
             textOut(sprintf('done.\n'));
         catch 
             textOut(sprintf('failed.\n'));
@@ -657,7 +741,6 @@ function hOut = USB_OpenHandle_Windows(hIn, SuppressErrors)
 
 end%function
 
-
 %% --- FUNCTION displayUSBWinStatus(status)
 function displayUSBWinStatus(status)
 % little convenient helper to save some lines of code with textOut
@@ -683,13 +766,16 @@ function displayLibusbStatus(status)
 end%function
 
 
-%% --- FUNCTION USB_OpenHandle_Linux
-function hOut = USB_OpenHandle_Linux(hIn, SuppressErrors)
+%% --- FUNCTION USB_OpenHandle_Libusb
+function hOut = USB_OpenHandle_Libusb(hIn, SuppressErrors)
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 % Temporary USB construction site for the RWTH - Mindstorms NXT Toolbox
 %           http://www.mindstorms.rwth-aachen.de
 %
 % Linus Atorf, 29.4.2008
+% 
+% Updates:
+% Martin Staas, 08.09.11
 % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % % %
 
 % Basic structure of this function:
@@ -706,6 +792,19 @@ function hOut = USB_OpenHandle_Linux(hIn, SuppressErrors)
 %and only fails when claiming its interface (I think that's the case actually, so
 %this would not be an issue after all).
 % new remark: doesn't seem to be a problem...
+%
+% Update (staas 08.09.11): For Windows 64Bit we also use libusb now.
+%   Thanks to Paul Hollensen for providing his Code for Win64 support!
+%
+%   unfortunatly under Windows it is named "libusb0", that means we have to
+%   load the right library. In the case of "libusb0" we rename it to "libusb"
+%   so that we can reuse most of the old Linux Code for Win64!
+%   There are only a few lines of code where we need to make a difference
+%   between Win64 and Linux (e.g. we don´t want to reset the USB in Win64!)
+% 
+% TODO: Take a look at Win32 and "libusb0", should work fine!
+%   If it works we can use "libusb" as our standard library and "Fantom" only 
+%   as a fallback solution for Win32/MAC.
 
 
 %% initialize etc...
@@ -722,8 +821,9 @@ function hOut = USB_OpenHandle_Linux(hIn, SuppressErrors)
     hOut.ConnectionTypeValue    = 1;
     hOut.ConnectionTypeName     = 'USB';
     
-%% Unload libusb (if already in memory)
-    if libisloaded('libusb')
+
+%% Unload libusb when working with Linux (if already in memory)
+    if libisloaded('libusb') && (hIn.OSValue == 2)
         textOut(sprintf('  - Unloading library "libusb"... '));
         try
             unloadlibrary('libusb');
@@ -760,9 +860,9 @@ function hOut = USB_OpenHandle_Linux(hIn, SuppressErrors)
             end%if
         end%try
     end%if
-    
-    
+
 %% Load libusb library & init (only if necessary)
+if (hIn.OSValue == 2) %Linux Stuff
     if ~libisloaded('libusb')
         textOut(sprintf('  - Loading library "libusb"... '));
         try
@@ -785,7 +885,64 @@ function hOut = USB_OpenHandle_Linux(hIn, SuppressErrors)
     else
         textOut(sprintf('  - Library "libusb" already loaded.\n'));
     end%if
-
+elseif (hIn.OSValue == 1) %Win32 Stuff
+    if ~libisloaded('libusb')
+        textOut(sprintf('  - Loading library "libusb"... '));
+        
+        try
+            % use "our" wrapper file...
+            % TODO: Review supress warnings
+            warning('off','MATLAB:loadlibrary:TypeNotFoundForStructure') %supress warnings while loading the library
+            loadlibrary('libusb0',@libusb0_32_proto,'alias','libusb')
+            warning('on','MATLAB:loadlibrary:TypeNotFoundForStructure')
+            textOut(sprintf('done.\n'));
+            % TODO: find a better system to differentiat between libusb and
+            % fantom ... chanigng os value is just a hack!
+            hIn.OSValue = 4; % work with LibUsb
+           
+        catch err
+            textOut(sprintf('failed.\n'));
+            textOut(sprintf('Trying to load "Fantom" instead.\n'));
+            textOut(sprintf('If you wan´t to use the new libusb support please download the newest Version of "libusb_win32" at http://www.libusb.org/wiki/libusb-win32 \n'));
+            hOut = USB_OpenHandle_Fantom(hIn, SuppressErrors);
+            return;
+        end%try
+        
+        % Init libusb
+        textOut(sprintf('    . initializing libusb.\n'))
+        calllib('libusb', 'usb_init');
+        
+    else
+        textOut(sprintf('  - Library "libusb" already loaded.\n'));
+    end%if
+else % Win64 Stuff
+     if ~libisloaded('libusb')
+        textOut(sprintf('  - Loading library "libusb"... '));
+        try
+            % use "our" wrapper file and rename libusb0 to libusb for compability...
+            % TODO: Review supress warnings
+            warning('off','MATLAB:loadlibrary:TypeNotFoundForStructure') %supress warnings while loading the library
+            loadlibrary('libusb0', @libusb0_64_proto,'alias','libusb') 
+            warning('on','MATLAB:loadlibrary:TypeNotFoundForStructure')
+            textOut(sprintf('done.\n'));
+        catch 
+            textOut(sprintf('failed.\n'));
+            textOut(sprintf('Please make sure that "libusb_win32" is installed correctly. If you dont have "libusb_win32" please download the newest Version at http://www.libusb.org/wiki/libusb-win32 \n'));
+            if ~SuppressErrors
+                error('MATLAB:RWTHMindstormsNXT:USB:Linux:couldNotLoadLibraryLibusb', 'The "libusb_win32" library could not be loaded. Make sure it is installed and paths are set correctly!')
+            else
+                return
+            end%if
+        end%try
+        
+        % Init libusb
+        textOut(sprintf('    . initializing libusb.\n'))
+        calllib('libusb', 'usb_init');
+        
+    else
+        textOut(sprintf('  - Library "libusb" already loaded.\n'));
+    end%if 
+end
 
     textOut(sprintf('  - Browsing USB busses\n'));
 
@@ -965,6 +1122,20 @@ function hOut = USB_OpenHandle_Linux(hIn, SuppressErrors)
     
 %% check if NXT present
     if ~foundNXT
+        try %try to load NXT using Fanton
+            unloadlibrary('libusb'); %important! We don´t need this anymore...
+            textOut(sprintf('No NXT found using "libusb".\n'));
+            textOut(sprintf('Trying to load "Fantom" instead.\n'));
+            textOut(sprintf('Please make sure that "libusb" is present and your NXT is installed correctly. \n'));
+            hOut = USB_OpenHandle_Fantom(hIn, SuppressErrors);
+            if hOut.Connected() %Fantom works?
+                hOut.OSValue = 1;
+            end
+            return;
+        catch err;
+
+        end
+        
         if ~SuppressErrors
             errordlg('No NXT found on USB bus! Make sure the NXT is turned on and access rights in /dev/ are properly set. Rebooting your NXT might help!', 'No NXT found')
             error('MATLAB:RWTHMindstormsNXT:USB:Linux:noNXTfound', 'No NXT found on USB bus! Make sure the NXT is turned on and access rights in /dev/ are properly set. Rebooting your NXT might help!')
@@ -1018,11 +1189,13 @@ function hOut = USB_OpenHandle_Linux(hIn, SuppressErrors)
 
     % is this necessary? but found it in perl and python versions...
     % the main point: never touch a running system
-    textOut(sprintf('    . resetting device... '));
-    ret = calllib('libusb', 'usb_reset', DevHandle);
-    displayLibusbStatus(ret);
-    if (ret < 0)
-        ErrorWhileOpening = true;
+    if ~(strcmp(computer,'PCWIN64') || strcmp(computer,'PCWIN'));  %NO RESET ON WINDOWS LIBUSB!!!
+        textOut(sprintf('    . resetting device... '));
+        ret = calllib('libusb', 'usb_reset', DevHandle);
+        displayLibusbStatus(ret);
+        if (ret < 0)
+            ErrorWhileOpening = true;
+        end%if
     end%if
     
     % now it's time to decide:

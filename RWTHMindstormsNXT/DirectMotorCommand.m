@@ -72,7 +72,7 @@ function DirectMotorCommand(f_port, f_power, f_angle, f_speed, f_sync, f_ratio, 
 % Signature
 %   Author: Linus Atorf, Alexander Behrens (see AUTHORS)
 %   Date: 2009/08/25
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

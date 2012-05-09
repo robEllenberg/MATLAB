@@ -11,7 +11,7 @@ function byte = sensortype2byte(name)
 % Signature
 %   Author: Linus Atorf, Nick Watts (see AUTHORS)
 %   Date: 2010/09/14
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

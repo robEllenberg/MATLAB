@@ -5,7 +5,7 @@ function [ timedOut ] = WaitFor( obj, timeout, handle)
 %     OBJ.WaitFor
 %     TIMEDOUT = OBJ.WaitFor(TIMEOUT)
 %
-%     OBJ.WaitFor(HANDLE)
+%     OBJ.WaitFor(TIMEOUT, HANDLE)
 %     TIMEDOUT = OBJ.WaitFor(TIMEOUT, HANDLE)
 %
 %
@@ -22,8 +22,11 @@ function [ timedOut ] = WaitFor( obj, timeout, handle)
 %     returns true. Otherwise it returns false. This functionality is
 %     useful to avoid that your robot (and your program) get stuck in case
 %     the motor should somehow get stalled (e.g.by  driving against a wall).
+%     Use TIMEOUT = 0 to wait infinitely (i.e. no time out desired).
 %
 %     Use HANDLE (optional) to identify the connection to use for this command. 
+%     In this case, you also have to pass TIMEOUT. Use TIMEOUT = 0 if
+%     this functionality is not needed.
 %
 % Note:
 %     If you specify TIMEOUT and the motor is not able to finish its
@@ -68,7 +71,7 @@ function [ timedOut ] = WaitFor( obj, timeout, handle)
 % Signature
 %   Author: Aulis Telle, Linus Atorf (see AUTHORS)
 %   Date: 2009/07/20
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

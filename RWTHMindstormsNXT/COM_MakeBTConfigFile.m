@@ -20,9 +20,9 @@ function COM_MakeBTConfigFile()
 % See also: COM_OpenNXT, COM_CloseNXT, COM_OpenNXTEx
 %
 % Signature
-%   Author: Alexander Behrens, Linus Atorf (see AUTHORS)
-%   Date: 2008/07/09
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Author: Alexander Behrens, Linus Atorf, Martin Staas (see AUTHORS)
+%   Date: 2011/09/30
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************
@@ -50,12 +50,18 @@ if strcmpi(my_answer,'YES')
 %% Set Directory Dialog
     my_dir_name = uigetdir(pwd,'Select a directory where to save the Bluetooth configuration file. (Should be the application directory!)');
 
-
+Is64Bit = '';
 %% Set Parameter Dialog
     if my_dir_name ~= 0
         dlg_title = 'Configuration File Settings';
         if ispc
-            prompt    = {'Filename:', 'SerialPort:', 'BaudRate:', 'DataBits:', 'SendPause:', 'ReceivePause:', 'Timeout:'};
+            archstr = computer('arch');
+            Is64Bit = regexp(archstr,'\w*64','match'); %are we running on 64Bit?
+            if isempty(Is64Bit)
+                prompt    = {'Filename:', 'SerialPort:', 'BaudRate:', 'DataBits:', 'SendPause:', 'ReceivePause:', 'Timeout:'};
+            else
+                prompt    = {'Filename:' ,'NXT-Name:', 'NXT-MAC:', 'Channel:', 'BaudRate:', 'DataBits:', 'SendPause:', 'ReceivePause:', 'Timeout:'};
+            end
         else
             prompt    = {'Filename:', 'SerialPort:', 'SendPause:', 'ReceivePause:', 'Timeout:'};
         end;
@@ -64,7 +70,11 @@ if strcmpi(my_answer,'YES')
         options.WindowStyle='normal';
         
         if ispc
-            default_parameters = {'bluetooth.ini','COM3','9600', '8', '5', '25', '2'};
+            if isempty(Is64Bit)
+                default_parameters = {'bluetooth.ini','COM3','9600', '8', '5', '25', '2'};
+            else
+                default_parameters = {'bluetooth.ini','NXT','','1','9600', '8', '5', '25', '2'};
+            end
         else
             default_parameters = {'bluetooth.ini', '/dev/rfcomm0', '5', '25', '2'};
         end;
@@ -74,12 +84,24 @@ if strcmpi(my_answer,'YES')
         if ~isempty(my_parameters)
             filename     = my_parameters{1};
             if ispc
-                port         = my_parameters{2};
-                baudrate     = str2double(my_parameters{3});
-                databits     = str2double(my_parameters{4});
-                sendpause    = str2double(my_parameters{5});
-                receivepause = str2double(my_parameters{6});
-                timeout      = str2double(my_parameters{7});
+                if isempty(Is64Bit)
+                    port         = my_parameters{2};
+                    baudrate     = str2double(my_parameters{3});
+                    databits     = str2double(my_parameters{4});
+                    sendpause    = str2double(my_parameters{5});
+                    receivepause = str2double(my_parameters{6});
+                    timeout      = str2double(my_parameters{7});
+                else
+                    nxtname         = my_parameters{2};
+                    nxtmac          = my_parameters{3};
+                    channel      = str2double(my_parameters{4});
+                    baudrate     = str2double(my_parameters{5});
+                    databits     = str2double(my_parameters{6});
+                    sendpause    = str2double(my_parameters{7});
+                    receivepause = str2double(my_parameters{8});
+                    timeout      = str2double(my_parameters{9});
+
+                end
             else
                 port         = my_parameters{2};
                 sendpause    = str2double(my_parameters{3});
@@ -104,7 +126,15 @@ if strcmpi(my_answer,'YES')
             fwrite(h_file, sprintf('[Bluetooth]\r\n'));
             fwrite(h_file, sprintf('\r\n'));
 
-            fwrite(h_file, sprintf('SerialPort=%s\r\n', port));
+            if isempty(Is64Bit) %TODO:  In future release this should be changed to verLessThan('instrument',3) or something like that
+                fwrite(h_file, sprintf('SerialPort=%s\r\n', port));
+            else         
+                fwrite(h_file, sprintf('NXT-Name=%s\r\n', nxtname));
+                fwrite(h_file, sprintf('NXT-MAC=%s\r\n', nxtmac));
+                fwrite(h_file, sprintf('Channel=%d\r\n', channel));
+                fwrite(h_file, sprintf('\r\n'));  
+            end
+            
             if ispc
                fwrite(h_file, sprintf('BaudRate=%d\r\n',   baudrate));
                fwrite(h_file, sprintf('DataBits=%d\r\n',   databits));
@@ -117,6 +147,8 @@ if strcmpi(my_answer,'YES')
             
             fwrite(h_file, sprintf('Timeout=%d\r\n', timeout));
             fwrite(h_file, sprintf('\r\n'));
+            
+
 
             fclose(h_file);
             

@@ -75,7 +75,7 @@ function ReturnBytes = COM_ReadI2C(Port, RequestLen, DeviceAddress, RegisterAddr
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2008/09/23
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

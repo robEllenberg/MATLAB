@@ -34,7 +34,7 @@ function COM_SendPacket(Packet, handle)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2009/08/31
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************
@@ -70,9 +70,9 @@ function COM_SendPacket(Packet, handle)
             textOut(sprintf('\n  USB packet: %s \n', horzcat(dec2hex(Packet(3:end), 2), blanks(length(Packet(3:end)))')'));
         end%if
         
-        if (handle.OSValue == 1) || (handle.OSValue == 3) % Windows and Mac
+        if (handle.OSValue == 1) || (handle.OSValue == 3) % Windows32 and Mac
             USB_SendAndCollectPacket_Windows(Packet(3:end), handle);
-        else % Linux
+        else % Linux and Win64
             USB_SendPacket_Linux(Packet(3:end), handle);
         end%if
         
@@ -122,7 +122,7 @@ function BT_SendPacket(Packet, h)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2007/10/15
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 
 

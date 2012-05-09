@@ -50,7 +50,7 @@ function map = MAP_GetInputModule(port)
 % Signature
 %   Author: Alexander Behrens (see AUTHORS)
 %   Date: 2008/05/23
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

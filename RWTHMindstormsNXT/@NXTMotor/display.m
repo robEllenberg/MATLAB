@@ -9,7 +9,7 @@ function display( obj )
 % Signature
 %   Author: Aulis Telle, Linus Atorf (see AUTHORS)
 %   Date: 2009/07/20
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

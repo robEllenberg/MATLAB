@@ -14,9 +14,9 @@ function checkHandleStruct(h)
 %   appropriate.
 %
 % Signature
-%   Author: Linus Atorf (see AUTHORS)
-%   Date: 2008/07/01
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Author: Linus Atorf, Alexander Behrens (see AUTHORS)
+%   Date: 2011/09/28
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 % ***********************************************************************************************
 % *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *
@@ -52,7 +52,7 @@ try
     if h.Connected()
         actualHandle = h.Handle(); % cache for performance...
         if ~isempty(h.CreationTime) && ~isempty(actualHandle)
-            if h.OSValue == 1 % Windows
+            if (h.OSValue == 1 && libisloaded('fantom'))% Windows32Bit
                 if h.ConnectionTypeValue == 1 % USB
                     if isfloat(actualHandle)
                         valid = true;
@@ -62,13 +62,33 @@ try
                         valid = true;
                     end%if
                 end%if
-            elseif h.OSValue == 2 % Linux
+            elseif h.OSValue == 2 % Linux 
                 if h.ConnectionTypeValue == 1 % USB
                      if ~isnumeric(actualHandle) % also possible: isa('libpointer') ?
                          valid = true;
                      end%if
                 else % BT
                     if isfloat(actualHandle)
+                        valid = true;
+                    end%if
+                end%if
+            elseif h.OSValue == 4 %Windows 64Bit
+                if h.ConnectionTypeValue == 1 % USB
+                     if ~isnumeric(actualHandle) % also possible: isa('libpointer') ?
+                         valid = true;
+                     end%if
+                else % BT
+                    if isa(actualHandle, 'Bluetooth')
+                        valid = true;
+                    end%if
+                end%if
+            elseif (h.OSValue == 1 && libisloaded('libusb')) %Windows 32 Bit Flibusb
+                if h.ConnectionTypeValue == 1 % USB
+                     if ~isnumeric(actualHandle) % also possible: isa('libpointer') ?
+                         valid = true;
+                     end%if
+                else % BT
+                    if isa(actualHandle, 'serial')
                         valid = true;
                     end%if
                 end%if

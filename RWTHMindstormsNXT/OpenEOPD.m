@@ -59,7 +59,7 @@ function OpenEOPD(port, range, handle)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2009/09/17
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 % ***********************************************************************************************
 % *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *

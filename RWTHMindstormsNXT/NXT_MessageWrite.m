@@ -38,7 +38,7 @@ function NXT_MessageWrite(varargin)
 % Signature
 %   Author: Laurent Vaylet, The MathWorks SAS (France), Alexander Behrens (see AUTHORS)
 %   Date: 2008/12/17
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

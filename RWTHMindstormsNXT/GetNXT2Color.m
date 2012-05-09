@@ -62,12 +62,12 @@ function out = GetNXT2Color( f_sensorport, varargin )
 %  end%if
 %  CloseSensor(port);
 %
-% See also: OpentNXT2Color, CloseSensor, OpenColor, GetColor, OpenLight, GetLight, COM_ReadI2C
+% See also: OpenNXT2Color, CloseSensor, OpenColor, GetColor, OpenLight, GetLight, COM_ReadI2C
 %
 % Signature
 %   Author: Nick Watts, Linus Atorf (see AUTHORS)
 %   Date: 2010/09/21
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

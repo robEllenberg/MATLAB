@@ -58,7 +58,7 @@ function [type cmd statusbyte content] = COM_CollectPacket(handle, varargin)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2009/08/31
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************
@@ -189,7 +189,7 @@ function [type cmd statusbyte content] = BT_CollectPacket(h)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2007/10/14
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 
 

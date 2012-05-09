@@ -31,7 +31,7 @@ function NXT_WriteIOMap(mod_id, offset, n_bytes, data, varargin)
 % Signature
 %   Author: Alexander Behrens (see AUTHORS)
 %   Date: 2008/05/22
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

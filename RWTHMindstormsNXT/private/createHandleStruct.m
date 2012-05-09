@@ -32,7 +32,7 @@ function h = createHandleStruct()
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2008/07/01
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 % ***********************************************************************************************
 % *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *
@@ -94,7 +94,7 @@ function h = createHandleStruct()
     
 
     h.OSName                = '';  % String, 'Windows' or 'Linux'
-    h.OSValue            	= NaN; % Windows = 1, Linux = 2
+    h.OSValue            	= NaN; % Windows = 1, Linux & Windows64Bit = 2
     h.ConnectionTypeName    = '';  % String, 'USB' or 'Bluetooth'
     h.ConnectionTypeValue 	= NaN; % USB = 1, Bluetooth = 2
 

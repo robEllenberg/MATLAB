@@ -62,9 +62,9 @@ function COM_CloseNXT(varargin)
 % See also: COM_OpenNXT, COM_OpenNXTEx, COM_MakeBTConfigFile, COM_SetDefaultNXT
 %
 % Signature
-%   Author: Linus Atorf (see AUTHORS)
-%   Date: 2009/08/31
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Author: Linus Atorf, Alexander Behrens (see AUTHORS)
+%   Date: 2011/09/28
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************
@@ -135,9 +135,9 @@ function COM_CloseNXT(varargin)
         
         if h.ConnectionTypeValue == 1 % USB
             textOut(sprintf('Closing handle (USB) with MAC = %s (handle was %.1f minutes old)\n', h.NXTMAC, etime(clock, h.CreationTime) / 60));
-            if (h.OSValue == 1) || (h.OSValue == 3) % Windows and Mac
+            if (h.OSValue == 1) || (h.OSValue == 3) % Windows and Mac (Fantom)
                 USB_CloseHandle_Windows(h);
-            else % linux
+            else % linux and Win64 (Libusb)
                 USB_CloseHandle_Linux(h);
             end%if
         else % BT
@@ -210,16 +210,16 @@ function BT_CloseHandle(h)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2007/10/14
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 
 
 %% Close given bluetooth connection
     try
-        if h.OSValue == 1
+        if (h.OSValue == 1) || (h.OSValue == 4) % Win 32Bit or 64Bit
             fclose(h.Handle());
             delete(h.Handle()); 
-        else
+        else   % Linux or Mac
             fclose(h.Handle());
         end
         % complete the textOut message started earlier
@@ -264,7 +264,7 @@ function BT_CloseAllHandles(varargin)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2008/07/08
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 
 
 inisection = 'Bluetooth'; % the part inbetween [ ] inside the inifile...

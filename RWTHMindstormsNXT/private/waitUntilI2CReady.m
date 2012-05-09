@@ -6,7 +6,7 @@ function waitUntilI2CReady(port, handle)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2008/12/1
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

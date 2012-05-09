@@ -40,6 +40,12 @@ The RWTH - Mindstorms NXT Toolbox provides MATLAB functions to control LEGO Mind
     <callback>Example_5_MoveUpAndDown.m</callback>
     <file>doc/examples/Example_5_MoveUpAndDown.html</file>
   </demoitem>
+  <demoitem>
+    <label>Multi NXT: Use several NXTs at the same time</label>
+    <type>M-file</type>
+    <callback>Example_6_MultiNxt.m</callback>
+    <file>doc/examples/Example_6_MultiNxt.html</file>
+  </demoitem>
 </demosection>
 
  <demosection>

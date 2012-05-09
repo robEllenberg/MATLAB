@@ -184,7 +184,7 @@ classdef NXTMotor
 % Signature
 %   Author: Linus Atorf, Aulis Telle, Alexander Behrens (see AUTHORS)
 %   Date: 2009/08/24
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

@@ -116,7 +116,7 @@ function [ varargout ] = ReadFromNXT( obj , handle)
 % Signature
 %   Author: Aulis Telle, Linus Atorf (see AUTHORS)
 %   Date: 2008/11/12
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

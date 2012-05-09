@@ -59,7 +59,7 @@ function [message localInboxReturn statusByte] = NXT_MessageRead(localInbox, rem
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2009/08/31
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

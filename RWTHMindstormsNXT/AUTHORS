@@ -1,11 +1,13 @@
-Project members:
+Project Members:
 Linus Atorf         linus.atorf(at)rwth-aachen.de
-Alexander Behrens   behrens(at)lfb.rwth-aachen.de
-Achim Knepper       knepper(at)lfb.rwth-aachen.de
-Robert Schwann      schwann(at)eecs.rwth-aachen.de
-Rainer Schnitzler   rsch(at)eecs.rtwh-aachen.de
 Johannes Balle      balle(at)ient.rwth-aachen.de
+Alexander Behrens   behrens(at)lfb.rwth-aachen.de
 Thomas Herold       herold(at)iem.rwth-aachen.de
+Achim Knepper       knepper(at)lfb.rwth-aachen.de
+Dorian Schneider    schneider(at)lfb.rwth-aachen.de
+Rainer Schnitzler   rsch(at)eecs.rtwh-aachen.de
+Martin Staas        martin.staas(at).rwth-aachen.de 
+Robert Schwann      schwann(at)eecs.rwth-aachen.de
 Aulis Telle         telle(at)ind.rwth-aachen.de
 
 
@@ -14,20 +16,19 @@ Alexander Behrens   behrens(at)lfb.rwth-aachen.de
 
 
 Promoters:
-Prof. Til Aach, Prof. Tobias G. Noll
-
-
-Testers:
-Marian Walter, Axel Cordes
+Prof. Til Aach (†)
 
 
 Project Server Administration:
 Andre Bell          andre.bell(at)lfb.rwth-aachen.de
 
 
+Former Project Members:
+Marian Walter, Axel Cordes, Prof. Tobias G. Noll
+
+
 Contributors:
-Laurent Vaylet, Vital van Reeven, Bernd Neumann, Yvonne Nix, Sacha Franssen,
-Florian Schröder, Stefan Schürmans, Michele McColgan, Nick Watts
+Laurent Vaylet, Vital van Reeven, Bernd Neumann, Yvonne Nix, Sacha Franssen, Florian Schröder, Stefan Schürmans, Michele McColgan, Nick Watts, Paul Hollensen 
 
 
 Most contributors are members of the RWTH Aachen University (www.rwth-aachen.de)

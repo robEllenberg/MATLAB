@@ -14,7 +14,8 @@ function [methodinfo,structs,enuminfo,ThunkLibName]=libusb_proto
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2008/04/29
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
+;
 %
 % ***********************************************************************************************
 % *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *

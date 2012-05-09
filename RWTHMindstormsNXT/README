@@ -1,7 +1,7 @@
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 * Readme file for RWTH - Mindstorms NXT Toolbox for MATLAB  *
 * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
-*           Version 4.04 - October 1st, 2010                *
+*           Version 4.07 - February 8th, 2012               *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 
 
@@ -43,10 +43,13 @@ You should have received a copy of the GNU General Public License along with the
   . Bluetooth 2.0 adapter recommended model by LEGO® 
     (e.g. AVM BlueFRITZ! USB) supporting the serial port profile (SPP)  
   . Windows: Device driver & Bluetooth stack which creates a COM-Port
+  . Windows 64 Bit: Matlab 2011b and the Instrument Control Toolbox V3.0 or higher
   . Linux: Bluetooth-packages, especially bluez, as well as rfcomm
   . Mac OS: Working Bluetooth configuration
 - USB: 
-    Windows, Mac OS: Official MINDSTORMS NXT Driver "Fantom", v1.02 or better 
+    Windows 32Bit: libusb-win32 or Official MINDSTORMS NXT Driver "Fantom", v1.02 or better
+    Windows 64Bit: libusb-win32
+    Mac OS: Official MINDSTORMS NXT Driver "Fantom", v1.02 or better 
         Recommended: Official MINDSTORMS NXT Driver "Fantom", v1.1.3 or better 
     Linux: libusb 0.1 or compatible
 
@@ -63,12 +66,15 @@ If you get the error message "Can't connect RFCOMM socket: Permission denied", t
 The actual device name is usually called /dev/rfcomm0 or similar, it can also be something 
 like /dev/tty.WL1-DevB.
 
+NOTE:
+With Matlab 2011b Mathworks introduced a new Bluetooth object in the Instrument Control Toolbox (since version 3.0). This enables a connection to the Bluetooth-Adapter Device via the Remote-Name or MAC-Address of the NXT and the used Channel. This feature has been integrated since toolbox release (v4.06) for Windows 64 Bit systems. Up to now, tests using the new Bluetooth object works fine. Linux is not supported yet. In future releases the introduced Bluetooth object may replace the virtual serial port communication. 
+
 
 *** USB:
 
-For USB-connections under Windows, the official LEGO MINDSTORMS NXT Device Driver v1.02 or better has to be installed (also called "Fantom"). Recommended is the latest version
-(currently 1.1.3). It can be downloaded here:
-http://mindstorms.lego.com/en-us/support/files/Driver.aspx
+For USB-connections under Windows use either the open-source library libusb-win32 or (only for Windows 32 Bit) the official LEGO MINDSTORMS NXT Device Driver v1.02 or better has to be installed.
+Libusb_Win32 can be downloaded at: http://www.libusb.org/wiki/libusb-win32
+The latest Version of the LEGO MINDSTORMS NXT Device Driver can be downloaded at: http://mindstorms.lego.com/en-us/support/files/Driver.aspx
 
 On Linux systems, the open-source library libusb 0.1 has to be present. It can be retrieved using a packet manager, for example Debian's apt-get. If installing the package "libusb" alone does not work, also "libusb-dev" should be retrieved and installed, or it could be called "libusb0", or "libusb-0.1".
 Again, please considere the LinuxReadme.txt file in /tools/LinuxConnection.
@@ -145,10 +151,13 @@ You need a firmware of the NXT 2.0 generation for the MotorControl program to wo
   
   
 *** CHECK OTHER SOFTWARE REQUIREMENTS
-  - Windows, USB: NXT Fantom driver installed? Get it here:
-             http://mindstorms.lego.com/en-us/support/files/Driver.aspx
+  - Windows, USB: Libusb_win32 or (only for Windows 32 Bit) NXT Fantom driver installed? 
+	     Get libusb_win32 here: http://www.libusb.org/wiki/libusb-win32
+             or Fantom here: http://mindstorms.lego.com/en-us/support/files/Driver.aspx
+
   - Windows, Bluetooth: Drivers installed, NXT visible etc.,
-                        COM-Port available?
+                        COM-Port available? 
+						Matlab 2011b and Instrument Controll Toolbox V3.0 or higher? (only for Windows 64 Bit)
 						
   - Linux: See LinuxReadme.txt in /tools/MotorControl
   
@@ -167,7 +176,7 @@ You need a firmware of the NXT 2.0 generation for the MotorControl program to wo
     the rfcomm device you're using
   - Or edit a bluetooth-example ini-file from the toolbox folder to suit your
     configuration. The most important thing is the correct serial port.
-	
+  - If you use Windows 64 Bit you just have to enter the Remote-Name or the MAC-Address and the Channel	(you don´t have to care about serial ports!)
   - Establish a Bluetooth connection to your NXT using your adapter's
     driver software, or using the script btconnect we provide in
     /tools/LinuxConnection
@@ -236,6 +245,7 @@ Performance improvements up to a factor of 3 have been observed!
 
 5. MORE ABOUT BLUETOOTH
 -----------------------
+(if you use Windows 64 Bit read the Note at the end of this paragraph)
 
 Before you can begin working with Bluetooth connections, you have to create a settings file that contains information about your Bluetooth adapter and serial port.
 Either you can use the toolbox-command COM_MakeBTConfigFile inside the command window. A dialog window lets you enter the required parameters. The other way is to edit the example-files called "bluetooth-example-windows.ini" or "bluetooth-example-linux.ini", that are provided in the toolbox root folder.
@@ -254,7 +264,8 @@ You can now try the demos (which require a correct configuration file called "bl
 
 Note that before this works, you have to establish a physical connection to your NXT. Depending on your Bluetooth adapter's driver software, this can be different. Once successful, the NXT and driver software will prompt you for a passkey. The authentification is then complete, and the toolbox should work properly.
 
-
+Windows 64Bit: To use the Toolbox you don´t have to care about serial ports anymore. You just have to enter the NXTs Remote-Name or MAC-Address and the Channel that you want to use for the connection.
+			   If you enter the Remote-Name and the MAC-Address the Toolbox first tries to connect to a Bluetooth device with the given MAC-Address. If this succeeds it will check it the name in the ini-File and the Remote-Name of the device Match. If the Toolbox can´t find an NXT matching to the MAC-Address it will try to find an NXT with the given Remote-Name.
 
 6. MORE ABOUT MAC OS
 --------------------

@@ -35,7 +35,7 @@ function [angularVelocity] = GetGyro(port, handle)
 % Signature
 %   Author: Linus Atorf, Rainer Schnitzler (see AUTHORS)
 %   Date: 2010/09/14
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 % ***********************************************************************************************
 % *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *

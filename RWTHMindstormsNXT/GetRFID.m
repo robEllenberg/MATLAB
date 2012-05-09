@@ -40,7 +40,7 @@ function [transpID datahex] = GetRFID(port, varargin)
 % Signature
 %   Author: Linus Atorf, Rainer Schnitzler (see AUTHORS)
 %   Date: 2008/12/1
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

@@ -44,7 +44,7 @@ function [BytesReady status] = NXT_LSGetStatus(port, varargin)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2007/10/15
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

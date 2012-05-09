@@ -11,7 +11,7 @@ function [isMOTORON isBRAKE isREGULATED] = byte2outputmode(byte)
 % SignatureCopyright: 2007-2009
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2007/10/14
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

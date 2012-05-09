@@ -19,7 +19,7 @@ function bytes = dec2wordbytes(val, n, varargin)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2008/06/01
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

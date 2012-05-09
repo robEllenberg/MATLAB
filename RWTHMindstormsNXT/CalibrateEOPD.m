@@ -107,7 +107,7 @@ function varargout = CalibrateEOPD(port, calibrationMode, varargin)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 20010/09/22
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 % ***********************************************************************************************
 % *  This file is part of the RWTH - Mindstorms NXT Toolbox.                                    *

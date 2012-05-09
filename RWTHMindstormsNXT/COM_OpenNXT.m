@@ -47,7 +47,7 @@ function handle = COM_OpenNXT(inifilename)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2009/07/10
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

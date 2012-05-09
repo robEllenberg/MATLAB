@@ -17,7 +17,7 @@ function errorstring=getVISAErrorString(commandstatus)
 % Signature
 %   Author: Vital van Reeven (see AUTHORS)
 %   Date: 2008/03/29
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

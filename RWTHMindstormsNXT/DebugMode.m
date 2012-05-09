@@ -41,7 +41,7 @@ function varargout = DebugMode(varargin)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2008/07/04
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

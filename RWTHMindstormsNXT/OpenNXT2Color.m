@@ -70,7 +70,7 @@ function OpenNXT2Color(port, mode, varargin)
 % Signature
 %   Author: Nick Watts, Linus Atorf (see AUTHORS)
 %   Date: 2010/09/21
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

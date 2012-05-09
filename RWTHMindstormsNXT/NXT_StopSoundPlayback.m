@@ -27,7 +27,7 @@ function NXT_StopSoundPlayback(varargin)
 % Signature
 %   Author: Alexander Behrens (see AUTHORS)
 %   Date: 2008/05/22
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

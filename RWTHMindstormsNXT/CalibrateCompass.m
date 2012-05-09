@@ -47,7 +47,7 @@ function [ok] = CalibrateCompass(port, f_start, varargin)
 % Signature
 %   Author: Rainer Schnitzler, Linus Atorf (see AUTHORS)
 %   Date: 2008/08/01
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

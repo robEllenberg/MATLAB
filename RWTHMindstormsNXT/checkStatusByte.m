@@ -19,7 +19,7 @@ function [flag err_message] = checkStatusByte(f_resp)
 % Signature
 %   Author: Linus Atorf (see AUTHORS)
 %   Date: 2007/10/15
-%   Copyright: 2007-2010, RWTH Aachen University
+%   Copyright: 2007-2011, RWTH Aachen University
 %
 %
 % ***********************************************************************************************

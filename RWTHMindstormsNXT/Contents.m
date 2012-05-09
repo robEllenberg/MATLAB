@@ -1,5 +1,5 @@
 % RWTH - Mindstorms NXT Toolbox
-% Version 4.04 01-Oct-2010
+% Version 4.07 08-Feb-2012
 % Files
 %   CalibrateColor             - Enables calibration mode of the HiTechnic color sensor V1
 %   CalibrateCompass           - Enables calibration mode of the HiTechnic compass sensor

@@ -1,3 +1,60 @@
+RWTH - Mindstorms NXT Toolbox version 4.07 (stable)
+
+
+    * Bugfixes:
+          o Fixed misleading description of NXTMotor::WaitFor syntax (Ticket #87)
+		  
+    * Improvements / changes:
+          o For Windows 64 Bit you need Matlab 2011b or higher and the Instrument Control Toolbox V3.0 or higher
+             
+    * Known bugs and limitations:
+          o MacOs support is not tested
+          o For Windows 64 Bit: while loading libusb designated warnings are supressed (Ticket #79)
+          o For an up-to-date list of bugs, issues and feature requests, see http://www.mindstorms.rwth-aachen.de/trac/report
+    * February 8th, 2012
+	
+	
+RWTH - Mindstorms NXT Toolbox version 4.06 (milestone)
+
+    * New features:
+          o USB and Bluetooth are now fully supported for Windows 64 Bit
+		  o Use sophisticated new MATLAB Bluetooth object (Win 64 Bit)
+		  o Extended "COM_MakeBTConfigFile" to support new Bluetooth object
+          o Added a new "MultiNxt" example
+
+    * Bugfixes:
+          o Fixed a bug where the Toolbox can't open a connection to the NXT if Fantom and libusb are installed
+		  
+    * Improvements / changes:
+          o For Windows 64 Bit you need Matlab 2011b or higher and the Instrument Control Toolbox V3.0 or higher
+             
+    * Known bugs and limitations:
+          o MacOs support is not tested
+          o Linux 64 Bit is not tested
+          o For an up-to-date list of bugs, issues and feature requests, see http://www.mindstorms.rwth-aachen.de/trac/report
+    * October 19th, 2011
+	
+	
+RWTH - Mindstorms NXT Toolbox version 4.05 (milestone)
+
+    * New features:
+          o Support for Windows 64 Bit with "libusb_win32"
+          o Support for system commands over USB on Windows (e.g. MAP_* functions) with libusb
+          o Better MacOs support (not tested)
+
+    * Improvements / changes:
+          o For Windows 64 Bit you need libusb_win32
+          o For Windows 32 Bit libusb_win32 is optional (alternative to "Fantom" driver)
+             
+    * Known bugs and limitations:
+          o We get warnings when loading "libusb_win32", see Ticket #79!
+          o Bluetooth support for Windows 64 Bit is not tested!
+          o MacOs support is not tested
+          o Linux 64 Bit is not tested
+          o For an up-to-date list of bugs, issues and feature requests, see http://www.mindstorms.rwth-aachen.de/trac/report
+    * September 22th, 2011
+
+
 RWTH - Mindstorms NXT Toolbox version 4.04 (stable)
 
     * New features:
@@ -60,7 +117,7 @@ RWTH - Mindstorms NXT Toolbox version 4.02 (stable)
     * October 6th, 2009
 
 
-	
+
 RWTH - Mindstorms NXT Toolbox version 4.01
 
     * New features:
