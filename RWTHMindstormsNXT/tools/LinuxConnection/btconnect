@@ -49,7 +49,7 @@ fi
 
 # if hardware address is given, we're all set. otherwise, perform a scan
 
-if [[ $1 =~ ^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$ ]]; then
+if [[ $1 =~ "^[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$" ]]; then
 	MAC=$1
 else
 	NAME="$1"
@@ -59,7 +59,7 @@ else
 		echo "not found." >&2
 		exit 1
 	fi
-	if [[ $MAC == *\ * ]]; then
+	if [[ "$MAC" == "*\ *" ]]; then
 		echo "found multiple devices:" >&2
 		echo >&2
 		for i in $MAC; do
