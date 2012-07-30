@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MATLAB 2011b
+Comment=Start MATLAB - The Language of Technical Computing
+Exec=matlab -desktop
+Icon=HOME/.local/share/icons/scalable/matlab_logo.svg
+Categories=Development
+Terminal=false
+StartupNotify=true
+StartupWMClass=com-mathworks-util-PostVMInit
+X-Ayatana-Desktop-Shortcuts=New_Window;
+
+[New_Window Shortcut Group]
+Name=New Matlab
+Exec=matlab -desktop

@@ -1,0 +1,17 @@
+#!/bin/bash
+# Uses MATLAB SVG logo downloaded from this blog:
+#   http://hpmalte.blogspot.com/2009/04/matlab-vsg-icon.html
+
+sudo apt-get install matlab-support
+
+mkdir -p ~/.local/share/applications/
+mkdir -p ~/.local/share/icons/scalable
+#Copy to local folder
+sed "s,HOME,`echo ~`,g" matlab.desktop_template > matlab.desktop
+cp matlab.desktop ~/.local/share/applications/
+cp matlab_logo.svg ~/.local/share/icons/scalable
+#Copy to local folder
+sed "s,HOME/.local/,/usr/,g" matlab.desktop_template > matlab.desktop
+sudo cp matlab.desktop /usr/share/applications/
+sudo mkdir /usr/share/icons/scalable
+sudo cp matlab_logo.svg /usr/share/icons/scalable/
