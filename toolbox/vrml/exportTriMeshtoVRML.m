@@ -1,18 +1,19 @@
 function exportTriMeshtoVRML(fileName,pCloud,faces,appearance)
 %% Export a point cloud and 1-indexed face set as a simple VRML file
 %
-
     if nargin <4
         appearance.ambientIntensity = 1;
         appearance.diffuse = [.8 .7 .7];
         appearance.specular = [.8 .8 .8];
         appearance.shininess = .6;
     end
-    
-    fid=fopen([fileName,'.wrl'],'w');
+    if ~strcmp(fileName(end-3:end),'.wrl')
+        fileName=[fileName '.wrl'];
+    end
+    fid=fopen(fileName,'w');
     
     %Dump the header and file name as the model name
-    fprintf(fid,'#VRML V2.0 utf8\n\nDEF %s\nTransform {\n\tchildren [\n\t\t Shape {\n',fileName);
+    fprintf(fid,'#VRML V2.0 utf8\n\nDEF %s\nTransform {\n\tchildren [\n\t\t Shape {\n',fileName(1:end-4));
     
     fprintf(fid,'\t\t\tappearance Appearance{\n\t\t\tmaterial Material {\n');
     fprintf(fid,'\t\t\t\tambientIntensity %f\n',appearance.ambientIntensity);

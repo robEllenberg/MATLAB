@@ -8,7 +8,9 @@ function [pointcloud,K]=importVRMLMesh(fname,dispResult)
 %   of the VRML file.  It can basically only handle a single object,
 %   defined first by a set of points, then a set of indices.
 %
-
+if ~strcmp(fname(end-3:end),'.wrl')
+    fname=[fname '.wrl']
+end
 vrfile=fopen(fname);
 
 fprintf('Reading pointcloud data from %s\n', fname)
