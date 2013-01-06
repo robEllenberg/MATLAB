@@ -62,7 +62,7 @@ end
 coordIndex=coordIndex(1:p-1,:); %trim padded zeros
 fclose(vrfile);
 
-disp('Display results')
+
 
 K=coordIndex(:,1:3)+1;
 X=pointcloud(:,1);Y=pointcloud(:,2);Z=pointcloud(:,3);%Load positions to X,Y,Z
@@ -71,7 +71,7 @@ if nargin<2
     dispResult=0;
 end
 if dispResult
-    
+    disp('Display results')    
     %Display the imported VRML Mesh
     figure(1)
     trisurf(K,X,Y,Z);

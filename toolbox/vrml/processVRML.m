@@ -35,7 +35,7 @@ for k=1:length(listing)
         [pointCloud,K]=importVRMLMesh(fname);
         
         %Mirror VRML if specified
-        if strcmp(mir,'RL') || strcmp(mir,'LR')
+        if (fname(6)=='R' || fname(6)=='L') && (strcmp(mir,'RL') || strcmp(mir,'LR'))
             %Read in the string for the mirror operation and choose the
             %output character
             newName=fname(1:end-4);newName(6)=mir(2);
