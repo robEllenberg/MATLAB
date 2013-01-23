@@ -1,9 +1,9 @@
-function processVRML(filelist,mir,hull,check)
+function processVRML(filelist,mir,hull,check,stlout)
 %% Process VMRL97 files exported from Inventor 20XX by CADStudio's VRML exporter
 % Read in a listing of files and process them for OpenRAVE by adding color
 % data, and optionally mirroring and finding the convex hulls of each.
 % Usage:
-%   processVRML(filelist,mir,hull)
+%   processVRML(filelist,mir,hull,check,stlout)
 %       filelist is a string that the "dir" command uses to find matching
 %           files. Thus, '*.wrl' will return all VRML files, while
 %          'Body_L*.wrl' will return only left sides
@@ -11,6 +11,9 @@ function processVRML(filelist,mir,hull,check)
 %           'RL' means right to left, 'LR' means left to right
 %       hull is a flag to export the convex hull of the body, prefixed with
 %           'convhull'
+%       check is a flag which optionally shows the processed surfaces
+%       stlout is a flag that optionally exports the finished shape to stl
+%       format
 
 switch nargin
     case 1
@@ -21,6 +24,14 @@ switch nargin
     case 3
 end
     
+if ~exist('stlout')
+    stlout=''
+end
+
+if ~exist('check')
+    check=0
+end
+
 listing = dir(filelist);
 
 appearance.ambientIntensity = 1;
@@ -41,7 +52,7 @@ for k=1:length(listing)
             newName=fname(1:end-4);newName(6)=mir(2);
             newCloud=pointCloud;
             newCloud(:,2)=-newCloud(:,2);
-            newMesh=K(:,[1,3,2]);
+            newMesh=K(:,[1,3,2]);import_stl_fast.m
         else
             newCloud=pointCloud;
             newName=fname;
@@ -67,8 +78,26 @@ for k=1:length(listing)
             importVRMLMesh(newName,1);
             pause(1);
         end
+        
+        if ~isempty(stlout)
+            if stlout(1)=='b'
+                fmt='binary';
+            else
+                fmt='ascii';
+            end
+            outname=[newName(1:end-4),'.stl'];
+            fprintf('Mesh has %d faces\n',size(newMesh,1))
+            cloud2stl(outname,newCloud,newMesh,fmt)
+            [p,v,n]=import_stl_fast(outname,1);
+            if check && fmt(1)=='a'
+                disp('Showing re-imported STL')
+                clf
+                trisurf(v,p(:,1),p(:,2),p(:,3)) 
+            end
+        end
     end
     clear newCloud K newMesh pointCloud ans
 end
 
 end
+
