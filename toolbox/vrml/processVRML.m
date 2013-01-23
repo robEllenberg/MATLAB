@@ -88,8 +88,9 @@ for k=1:length(listing)
             outname=[newName(1:end-4),'.stl'];
             fprintf('Mesh has %d faces\n',size(newMesh,1))
             cloud2stl(outname,newCloud,newMesh,fmt)
-            [p,v,n]=import_stl_fast(outname,1);
+            
             if check && fmt(1)=='a'
+                [p,v,n]=import_stl_fast(outname,1);
                 disp('Showing re-imported STL')
                 clf
                 trisurf(v,p(:,1),p(:,2),p(:,3)) 
