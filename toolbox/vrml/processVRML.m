@@ -1,4 +1,4 @@
-function processVRML(filelist,mir,hull,check,stlout)
+function processVRML(filelist,mir,hull,check,stlout,reduce)
 %% Process VMRL97 files exported from Inventor 20XX by CADStudio's VRML exporter
 % Read in a listing of files and process them for OpenRAVE by adding color
 % data, and optionally mirroring and finding the convex hulls of each.
@@ -14,22 +14,25 @@ function processVRML(filelist,mir,hull,check,stlout)
 %       check is a flag which optionally shows the processed surfaces
 %       stlout is a flag that optionally exports the finished shape to stl
 %       format
-
-switch nargin
-    case 1
-        mir=0;
-        hull=0;
-    case 2
-        hull=0;
-    case 3
-end
     
 if ~exist('stlout')
-    stlout=''
+    stlout='';
 end
 
 if ~exist('check')
-    check=0
+    check=0;
+end
+
+if ~exist('mir')
+    mir='';
+end
+
+if ~exist('hull')
+    hull=0;
+end
+
+if ~exist('reduce')
+    reduce=0;
 end
 
 listing = dir(filelist);
@@ -71,7 +74,11 @@ for k=1:length(listing)
             [newCloud,newMesh]=shrinkPointCloud(newCloud,newMesh);
             newName=['convhull' newName(5:end)];
         end
-        
+        %Reduce geometry by volume percentage (only if using convex hull!)
+        if reduce && hull
+            [newCloud, newMesh]=trimeshReduce(newCloud,newMesh,reduce,check);
+        end
+        keyboard
         %Export and check
         exportTriMeshtoVRML(newName,newCloud,newMesh,appearance)
         if check

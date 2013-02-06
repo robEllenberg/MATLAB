@@ -1,11 +1,17 @@
-function [P2,K2]=trimeshReduce(P,K,rplimit)
-%P=1000*P;
-figure()
-subplot(1,2,1)
+function [P2,K2]=trimeshReduce(P,K,rplimit,check)
 
-eztrisurf(K,P);
-title('Original model');
-axis equal
+if ~exist('check','var')
+    check=false
+end
+
+if check
+    figure()
+    subplot(1,2,1)
+
+    eztrisurf(K,P);
+    title('Original model');
+    axis equal
+end
 
 N=size(P,1);
 V=zeros(N,1);
@@ -35,13 +41,13 @@ while (upper-lower)>2
     
 end
 
+if check
+    subplot(1,2,2)
+    eztrisurf(K2,P2)
+    title(sprintf('Removed %d points from %d total, Volume ratio %f',numremove,N,rp));
+    axis equal
+end
 
-subplot(1,2,2)
-eztrisurf(K2,P2)
-title(sprintf('Removed %d points from %d total, Volume ratio %f',numremove,N,rp));
-axis equal
-
-%P2=P2/1000
 end
 
 function A=triangleAreas(P,K)
