@@ -49,34 +49,34 @@ appearance.shininess = .3;
 for k=1:length(listing)
     if ~listing(k).isdir
         fname=listing(k).name;
-        
+        fname
         [pointCloud,K]=importVRMLMesh(fname);
         
+        newCloud=pointCloud;
+        newName=fname;
+        newMesh=K;
+        
         %Mirror VRML if specified
-        if (fname(6)=='R' || fname(6)=='L') && (strcmp(mir,'RL') || strcmp(mir,'LR'))
+        rmatch=strfind(fname,'_R');
+        lmatch=strfind(fname,'_L');
+        if ~isempty(lmatch) && strcmp(mir,'LR')
             %Read in the string for the mirror operation and choose the
             %output character
-            newName=fname(1:end-4);newName(6)=mir(2);
-            newCloud=pointCloud;
+            %newName=fname(1:end-4);
+            newName(lmatch+1)=mir(2);
             newCloud(:,2)=-newCloud(:,2);
             newMesh=K(:,[1,3,2]);
-        else
-            newCloud=pointCloud;
-            newName=fname;
-            newMesh=K;
-        end
-        
-        %Export and check
-        exportTriMeshtoVRML(newName,newCloud,newMesh,appearance)
-        if check
-            importVRMLMesh(newName,1);
-            pause(1);
+        elseif ~isempty(rmatch) && strcmp(mir,'RL')
+            newName(rmatch+1)=mir(2);
+            newCloud(:,2)=-newCloud(:,2);
+            newMesh=K(:,[1,3,2]);
         end
         
         if hull
             newMesh=convhull(newCloud);
             [newCloud,newMesh]=shrinkPointCloud(newCloud,newMesh);
-            newName=['convhull' newName(5:end)];
+            suffixstart=strfind(newName,'_');
+            newName=['convhull' newName(suffixstart:end)];
         end
         %Reduce geometry by volume percentage (only if using convex hull!)
         if reduce && hull
@@ -85,10 +85,11 @@ for k=1:length(listing)
         %keyboard
         %Export and check
         exportTriMeshtoVRML(newName,newCloud,newMesh,appearance)
-        if check
-            importVRMLMesh(newName,1);
-            pause(1);
-        end
+%         if check
+%             
+%             importVRMLMesh(newName,1);
+%             pause(1);
+%         end
         
         if ~isempty(stlout) && stlout
             if stlout(1)=='b'
