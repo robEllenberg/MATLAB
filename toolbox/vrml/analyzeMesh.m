@@ -1,4 +1,4 @@
-function [P2,K2,rp]=analyzeMesh(P,K,numremove)
+function [P2,K2]=analyzeMesh(P,K,rplimit)
 %P=1000*P;
 figure()
 subplot(1,2,1)
@@ -15,12 +15,26 @@ end
 
 [vs,ix]=sort(V);
 
-P2=P(ix(numremove:end),:);
-K2=convhull(P2(:,1),P2(:,2),P2(:,3));
-disp('Previous mesh volume')
-v1=meshVolume(P,K);
-v2=meshVolume(P2,K2);
-rp=v2/v1;
+lower=1;
+upper=N;
+numremove=floor(N/2);
+V1=meshVolume(P,K);
+rp=1;
+while (upper-lower)>2
+    if rp<rplimit
+        upper=numremove
+    else
+        lower=numremove
+    end
+    numremove=floor((lower+upper)/2)
+    
+    P2=P(ix(numremove:end),:);
+    K2=convhull(P2(:,1),P2(:,2),P2(:,3));
+    V2=meshVolume(P2,K2);
+    rp=V2/V1;
+    
+end
+
 
 subplot(1,2,2)
 eztrisurf(K2,P2)
