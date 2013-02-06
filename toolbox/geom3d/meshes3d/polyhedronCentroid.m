@@ -27,6 +27,7 @@ nT  = size(T, 1);
 % initialize result
 centroid = zeros(1, 3);
 
+vt=0;
 % Compute the centroid and the volum of each tetraehdron
 for i = 1:nT
     % coordinates of tetrahedron vertices

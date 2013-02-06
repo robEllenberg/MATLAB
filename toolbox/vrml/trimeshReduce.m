@@ -1,7 +1,7 @@
 function [P2,K2]=trimeshReduce(P,K,rplimit,check)
 
 if ~exist('check','var')
-    check=false
+    check=false;
 end
 
 if check
@@ -15,19 +15,21 @@ end
 
 N=size(P,1);
 V=zeros(N,1);
+SA=zeros(N,1);
 for k=1:size(P,1)
-    V(k)=getSlice(k,P,K);
+    [V(k),SA(k)]=getSlice(k,P,K);
 end
 
-[~,ix]=sort(V);
+metric=V./SA;
+[~,ix]=sort(metric);
 
 lower=1;
 upper=N;
-numremove=floor(N/2);
+numremove=lower;
 V1=meshVolume(P,K);
 rp=1;
 while (upper-lower)>2
-    if rp<rplimit
+    if rp<=rplimit
         upper=numremove;
     else
         lower=numremove;
@@ -57,7 +59,7 @@ for r=1:size(K,1)
 end
 end
 
-function V=getSlice(ind,P,K)
+function [V,SA]=getSlice(ind,P,K)
 
 [r,~]=find(K==ind);
 kslice=K(unique(r),:);
@@ -65,10 +67,12 @@ pslice=P(kslice(:),:);
 try
     K2=convhull(pslice);
     V=meshVolume(pslice,K2);
+    SA=sum(triangleAreas(pslice,K2));
 catch err
     if strcmp(err.identifier,'MATLAB:convhull:EmptyConvhull3DErrId')
         fprintf('Found %d co-planar faces at point %d\n',length(r),ind)
         V=0;
+        SA=0;
     else
         error(err)
     end

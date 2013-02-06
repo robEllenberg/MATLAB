@@ -3,7 +3,7 @@ function processVRML(filelist,mir,hull,check,stlout,reduce)
 % Read in a listing of files and process them for OpenRAVE by adding color
 % data, and optionally mirroring and finding the convex hulls of each.
 % Usage:
-%   processVRML(filelist,mir,hull,check,stlout)
+%   processVRML(filelist,mir,hull,check,stlout,reduce)
 %       filelist is a string that the "dir" command uses to find matching
 %           files. Thus, '*.wrl' will return all VRML files, while
 %          'Body_L*.wrl' will return only left sides
@@ -13,7 +13,11 @@ function processVRML(filelist,mir,hull,check,stlout,reduce)
 %           'convhull'
 %       check is a flag which optionally shows the processed surfaces
 %       stlout is a flag that optionally exports the finished shape to stl
-%       format
+%           format
+%       reduce is a percentage volume preservation tolerance. Usually this
+%          should be greater than .99 to minimize distortion. The reduction
+%          method is fast but not gauranteed to preserve shape for more
+%          drastic reductions. 
     
 if ~exist('stlout')
     stlout='';
@@ -55,7 +59,7 @@ for k=1:length(listing)
             newName=fname(1:end-4);newName(6)=mir(2);
             newCloud=pointCloud;
             newCloud(:,2)=-newCloud(:,2);
-            newMesh=K(:,[1,3,2]);import_stl_fast.m
+            newMesh=K(:,[1,3,2]);
         else
             newCloud=pointCloud;
             newName=fname;
@@ -78,7 +82,7 @@ for k=1:length(listing)
         if reduce && hull
             [newCloud, newMesh]=trimeshReduce(newCloud,newMesh,reduce,check);
         end
-        keyboard
+        %keyboard
         %Export and check
         exportTriMeshtoVRML(newName,newCloud,newMesh,appearance)
         if check
@@ -86,7 +90,7 @@ for k=1:length(listing)
             pause(1);
         end
         
-        if ~isempty(stlout)
+        if ~isempty(stlout) && stlout
             if stlout(1)=='b'
                 fmt='binary';
             else
