@@ -3,7 +3,7 @@ function exportTriMeshtoVRML(fileName,pCloud,faces,appearance)
 %
     if nargin <4
         appearance.ambientIntensity = 1;
-        appearance.diffuse = [.8 .7 .7];
+        appearance.diffuse = [.8 .8 .8];
         appearance.specular = [.8 .8 .8];
         appearance.shininess = .6;
     end
