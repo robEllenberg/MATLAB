@@ -1,0 +1,3 @@
+[submodule "toolbox/stl-vrml-toolbox"]
+	path = toolbox/stl-vrml-toolbox
+	url = git://github.com/robEllenberg/stl-vrml-toolbox
