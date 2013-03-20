@@ -11,6 +11,7 @@ read -p "Press any key to Continue..."
 
 sudo ln -sf $MATLABROOT/bin/matlab /usr/bin/matlab
 sudo ln -sf $MATLABROOT/bin/mex /usr/bin/mex
+sudo ln -sf $MATLABROOT/bin/mexext /usr/bin/mexext
 sudo ln -sf $MATLABROOT/bin/mcc /usr/bin/mcc
 
 MLINT=$MATLABROOT/bin/glnxa64
