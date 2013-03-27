@@ -21,14 +21,16 @@ sudo cp setup/matlab_logo.svg /usr/share/icons/scalable/
 TOOLBOX_SCRIPT="run('`pwd`/addToolboxPaths.m');"
 if [[ -f startup.m ]]
 then
-    if `grep "addToolboxPaths" startup.m`
+    IS_SETUP=`grep "addToolboxPaths" startup.m`
+    if [ ${#IS_SETUP} ]
     then
         #Do nothing, startup is already setup
-        echo "setup successfully"
+        echo "Setup successfully"
     else
         echo $TOOLBOX_SCRIPT >> startup.m
+        echo "Setup successfully"
     fi
-        
+
 else
     echo $TOOLBOX_SCRIPT > startup.m
 fi
