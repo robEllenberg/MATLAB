@@ -9,10 +9,10 @@ fi
 echo "Setting up MATLAB symlinks for folder location $MATLABROOT"
 read -p "Press any key to Continue..."
 
-sudo ln -sf $MATLABROOT/bin/matlab /usr/bin/matlab
-sudo ln -sf $MATLABROOT/bin/mex /usr/bin/mex
-sudo ln -sf $MATLABROOT/bin/mexext /usr/bin/mexext
-sudo ln -sf $MATLABROOT/bin/mcc /usr/bin/mcc
+sudo ln -sf $MATLABROOT/bin/matlab /usr/local/bin/matlab
+sudo ln -sf $MATLABROOT/bin/mex /usr/local/bin/mex
+sudo ln -sf $MATLABROOT/bin/mexext /usr/local/bin/mexext
+sudo ln -sf $MATLABROOT/bin/mcc /usr/local/bin/mcc
 
 MLINT=$MATLABROOT/bin/glnxa64
 if [ ! -d "$MLINT" ]
@@ -21,7 +21,7 @@ then
     MLINT=$MATLABROOT/bin/glnxa32
 fi
 
-sudo ln -sf $MLINT/mlint /usr/bin/mlint 
+sudo ln -sf $MLINT/mlint /usr/local/bin/mlint 
 
 OSFLAG=`uname -a | grep "_64"`
 len=${#OSFLAG}
