@@ -6,15 +6,7 @@
 cd "$(git rev-parse --show-toplevel)"
 sudo apt-get install matlab-support
 
-mkdir -p ~/.local/share/applications/
-mkdir -p ~/.local/share/icons/scalable
-#Copy to local folder
-sed "s,HOME,`echo ~`,g" setup/matlab.desktop_template > setup/matlab.desktop
-cp setup/matlab.desktop ~/.local/share/applications/
-cp setup/matlab_logo.svg ~/.local/share/icons/scalable
-#Copy to system folder (so that other users and admins use the icon too)
-sed "s,HOME/.local/,/usr/,g" setup/matlab.desktop_template > setup/matlab.desktop
-sudo cp setup/matlab.desktop /usr/share/applications/
+sudo desktop-file-install setup/matlab.desktop
 sudo mkdir /usr/share/icons/scalable
 sudo cp setup/matlab_logo.svg /usr/share/icons/scalable/
 

@@ -1,5 +1,4 @@
 *.mexw*
 *html
 *.mat
-matlab.desktop
 startup.m
