@@ -1,135 +1,107 @@
-function varargout = stlread(file)
-% STLREAD imports geometry from an STL file into MATLAB.
-%    FV = STLREAD(FILENAME) imports triangular faces from the ASCII or binary
-%    STL file idicated by FILENAME, and returns the patch struct FV, with fields
-%    'faces' and 'vertices'.
+function [v, f, n, c, stltitle] = stlread(filename, verbose,slim)
+% This function reads an STL file in binary format into vertex and face
+% matrices v and f.
 %
-%    [F,V] = STLREAD(FILENAME) returns the faces F and vertices V separately.
+% USAGE: [v, f, n, c, stltitle] = stlread(filename, verbose,slim);
 %
-%    [F,V,N] = STLREAD(FILENAME) also returns the face normal vectors.
+% verbose is an optional logical argument for displaying some loading
+%   information (default is false).
 %
-%    The faces and vertices are arranged in the format used by the PATCH plot
-%    object.
+% v contains the vertices for all triangles [3*n x 3].
+% f contains the vertex lists defining each triangle face [n x 3].
+% n contains the normals for each triangle face [n x 3].
+% c is optional and contains color rgb data in 5 bits [n x 3].
+% stltitle contains the title of the specified stl file [1 x 80].
+%
+% To see plot the 3D surface use:
+%   patch('Faces',f,'Vertices',v,'FaceVertexCData',c);
+% or
+%   plot3(v(:,1),v(:,2),v(:,3),'.');
+%
+% Duplicate vertices can be removed using:
+%   [v, f]=patchslim(v, f);
+%
+% For more information see:
+%  http://www.esmonde-white.com/home/diversions/matlab-program-for-loading-stl-files
+%
+% Based on code originally written by:
+%    Doron Harlev
+% and combined with some code by:
+%    Eric C. Johnson, 11-Dec-2008
+%    Copyright 1999-2008 The MathWorks, Inc.
+% 
+% Re-written and optimized by Francis Esmonde-White, May 2010.
+% Slightly tweaked by Robert Ellenberg, July 2013
 
-% Copyright 2011 The MathWorks, Inc.
+use_color=(nargout>=4);
 
-    if ~exist(file,'file')
-        error(['File ''%s'' not found. If the file is not on MATLAB''s path' ...
-               ', be sure to specify the full path to the file.'], file);
-    end
-    
-    fid = fopen(file,'r');    
-    if ~isempty(ferror(fid))
-        error(lasterror); %#ok
-    end
-    
-    M = fread(fid,inf,'uint8=>uint8');
-    fclose(fid);
-    
-    [f,v,n] = stlbinary(M);
-    %if( isbinary(M) ) % This may not be a reliable test
-    %    [f,v,n] = stlbinary(M);
-    %else
-    %    [f,v,n] = stlascii(M);
-    %end
-    
-    varargout = cell(1,nargout);
-    switch nargout        
-        case 2
-            varargout{1} = f;
-            varargout{2} = v;
-        case 3
-            varargout{1} = f;
-            varargout{2} = v;
-            varargout{3} = n;
-        otherwise
-            varargout{1} = struct('faces',f,'vertices',v);
-    end
-
+fid=fopen(filename, 'r'); %Open the file, assumes STL Binary format.
+if fid == -1 
+    error('File could not be opened, check name or path.')
 end
 
-
-function [F,V,N] = stlbinary(M)
-
-    F = [];
-    V = [];
-    N = [];
-    
-    if length(M) < 84
-        error('MATLAB:stlread:incorrectFormat', ...
-              'Incomplete header information in binary STL file.');
-    end
-    
-    % Bytes 81-84 are an unsigned 32-bit integer specifying the number of faces
-    % that follow.
-    numFaces = typecast(M(81:84),'uint32');
-    %numFaces = double(numFaces);
-    if numFaces == 0
-        warning('MATLAB:stlread:nodata','No data in STL file.');
-        return
-    end
-    
-    T = M(85:end);
-    F = NaN(numFaces,3);
-    V = NaN(3*numFaces,3);
-    N = NaN(numFaces,3);
-    
-    numRead = 0;
-    while numRead < numFaces
-        % Each facet is 50 bytes
-        %  - Three single precision values specifying the face normal vector
-        %  - Three single precision values specifying the first vertex (XYZ)
-        %  - Three single precision values specifying the second vertex (XYZ)
-        %  - Three single precision values specifying the third vertex (XYZ)
-        %  - Two unused bytes
-        i1    = 50 * numRead + 1;
-        i2    = i1 + 50 - 1;
-        facet = T(i1:i2)';
-        
-        n  = typecast(facet(1:12),'single');
-        v1 = typecast(facet(13:24),'single');
-        v2 = typecast(facet(25:36),'single');
-        v3 = typecast(facet(37:48),'single');
-        
-        n = double(n);
-        v = double([v1; v2; v3]);
-        
-        % Figure out where to fit these new vertices, and the face, in the
-        % larger F and V collections.        
-        fInd  = numRead + 1;        
-        vInd1 = 3 * (fInd - 1) + 1;
-        vInd2 = vInd1 + 3 - 1;
-        
-        V(vInd1:vInd2,:) = v;
-        F(fInd,:)        = vInd1:vInd2;
-        N(fInd,:)        = n;
-        
-        numRead = numRead + 1;
-    end
-    
+if ~exist('verbose','var')
+    verbose = false;
 end
 
+ftitle=fread(fid,80,'uchar=>schar'); % Read file title
+numFaces=fread(fid,1,'int32'); % Read number of Faces
 
-function [F,V,N] = stlascii(M)
-    warning('MATLAB:stlread:ascii','ASCII STL files currently not supported.');
-    F = [];
-    V = [];
-    N = [];
+T = fread(fid,inf,'uint8=>uint8'); % read the remaining values
+fclose(fid);
+
+stltitle = char(ftitle');
+
+if verbose
+    fprintf('\nTitle: %s\n', stltitle);
+    fprintf('Number of Faces: %d\n', numFaces);
+    disp('Please wait...');
 end
 
-% TODO: Change the testing criteria! Some binary STL files still begin with
-% 'solid'.
-function tf = isbinary(A)
-% ISBINARY uses the first line of an STL file to identify its format.
-    if isempty(A) || length(A) < 5
-        error('MATLAB:stlread:incorrectFormat', ...
-              'File does not appear to be an ASCII or binary STL file.');
-    end    
-    if strcmpi('solid',char(A(1:5)'))
-        tf = false; % ASCII
+% Each facet is 50 bytes
+%  - Three single precision values specifying the face normal vector
+%  - Three single precision values specifying the first vertex (XYZ)
+%  - Three single precision values specifying the second vertex (XYZ)
+%  - Three single precision values specifying the third vertex (XYZ)
+%  - Two color bytes (possibly zeroed)
+
+% 3 dimensions x 4 bytes x 4 vertices = 48 bytes for triangle vertices
+% 2 bytes = color (if color is specified)
+
+trilist = 1:48;
+
+ind = reshape(repmat(50*(0:(numFaces-1)),[48,1]),[1,48*numFaces])+repmat(trilist,[1,numFaces]);
+Tri = reshape(typecast(T(ind),'single'),[3,4,numFaces]);
+
+n=squeeze(Tri(:,1,:))';
+n=double(n);
+
+v=Tri(:,2:4,:);
+v = reshape(v,[3,3*numFaces]);
+v = double(v)';
+
+f = reshape(1:3*numFaces,[3,numFaces])';
+
+if use_color
+    c0 = typecast(T(49:50),'uint16');
+    if (bitget(c0(1),16)==1)
+        trilist = 49:50;
+        ind = reshape(repmat(50*(0:(numFaces-1)),[2,1]),[1,2*numFaces])+repmat(trilist,[1,numFaces]);
+        c0 = reshape(typecast(T(ind),'uint16'),[1,numFaces]);
+        
+        r=bitshift(bitand(2^16-1, c0),-10);
+        g=bitshift(bitand(2^11-1, c0),-5);
+        b=bitand(2^6-1, c0);
+        c=[r; g; b]';
     else
-        tf = true;  % Binary
+        c = zeros(numFaces,3);
     end
 end
 
+if verbose
+    disp('Done!');
+end
 
+if exist('slim','var') && slim
+   [v,f]=patchslim(v,f);
+end
