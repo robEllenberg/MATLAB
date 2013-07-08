@@ -48,3 +48,16 @@ centro2d = polygonCentroid(pts);
 
 % project back in 3D
 centroid = planePoint(plane, centro2d);
+
+function centro2d=polygonCentroid(pts)
+
+pts2=pts([1:end,1],:);
+centers=(pts+circshift(pts,[-1,0]))/2;
+
+L=sqrt(sum(diff(pts2,[],1).^2,2));
+
+L_total=sum(L);
+
+centro2d=sum([L,L].*centers/L_total,1);
+
+
