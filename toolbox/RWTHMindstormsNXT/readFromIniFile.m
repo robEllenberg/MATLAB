@@ -1,4 +1,4 @@
-function ret = readFromIniFile(AppName, KeyName, filename)
+function ret = readFromIniFile(AppName, KeyName, filename) %#codegen
 % Reads parameters from a configuration file (usually *.ini)
 %  
 % Syntax
@@ -86,8 +86,8 @@ ret = '';
 %% Try to read in inifile
 fid = fopen(filename, 'r');
 if fid < 0
-	warning('MATLAB:RWTHMindstormsNXT:couldNotOpenInifile', 'Ini-file "%s" was not found or could not be read.', filename);
-	return
+	error('MATLAB:RWTHMindstormsNXT:couldNotOpenInifile', ...
+        'Ini-file "%s" was not found or could not be read.', filename);
 end%if
 
 % input to a string
@@ -98,13 +98,14 @@ fclose(fid);
 %% Separate lines and parse away
 curSection = '';
 curKey = '';
+curVal = '';
 while(~isempty(data))
     
     % get next line by LFs
-    [curLine, data] = strtok(data, char(10)); %#ok<STTOK>
+    [curLine, data] = strtok(data, newline); %#ok<STTOK>
     
-    % remove whitespace (includes removing CRs if present)
-    curLine = strtrim(curLine);
+    % remove whitespace & comments (includes removing CRs if present)
+    curLine = strtrim(strtok(curLine, ';'));
     
     % if line's empty or too short
     if length(curLine) < 2
@@ -123,8 +124,8 @@ while(~isempty(data))
         % ignore this line, it's a comment
         
     % or if we have a key
-    elseif ~isempty(strfind(curLine, '=')) % found a =, it's a key
-        [curKey remainder] = strtok(curLine, '=');
+    elseif contains(curLine, '=') % found a =, it's a key
+        [curKey, remainder] = strtok(curLine, '=');
         curVal = strtok(remainder, '=');
         % remove whitespaces from tokens
         curKey = strtrim(curKey);
@@ -144,4 +145,3 @@ end%while
 
 
 end%function
-
